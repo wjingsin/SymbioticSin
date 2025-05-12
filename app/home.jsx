@@ -2,32 +2,34 @@ import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react
 import React, { useState, useEffect } from 'react'
 import { FontAwesome5 } from '@expo/vector-icons'
 import { PointsProvider, usePoints } from "../contexts/PointsContext"
-import Corgi from "../components/corgi_jumping"
+import Corgi from "../components/corgi_walking"
+import CorgiJump from "../components/corgi_jumping"
+import Pom from "../components/pom_animated"
+import PomJump from "../components/pom_animated"
+import Pug from "../components/pug_animated"
+import PugJump from "../components/pug_animated"
 import InAppLayout from "../components/InAppLayout"
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Spacer from "../components/Spacer";
-import Pom from "../components/pom_animated"
-import Pug from "../components/pug_animated"
 import { usePetData, PET_TYPES } from "../contexts/PetContext"
-import {Link} from "expo-router";
-import {TokensProvider, useTokens} from "../contexts/TokenContext";
+import { Link } from "expo-router";
+import { TokensProvider, useTokens } from "../contexts/TokenContext";
+import { useUser } from "@clerk/clerk-expo";
+import { updateUserStatus } from '../firebaseService';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 // Import background images
 import background1 from '../assets/living room.png';
 import background2 from '../assets/living room.png';
 import background3 from '../assets/living room.png';
-import {useUser} from "@clerk/clerk-expo";
-import { updateUserStatus, subscribeToOnlineUsers } from '../firebaseService';
 
-// Map of background IDs to image sources
 const backgroundImages = {
     '1': background1,
     '2': background2,
     '3': background3,
-    // Add more as needed
 };
 
-// PetStats component that manages decreasing stats over time
 const PetStats = () => {
     const [happiness, setHappiness] = useState(100)
     const [energy, setEnergy] = useState(100)
@@ -35,7 +37,6 @@ const PetStats = () => {
     const [loaded, setLoaded] = useState(false)
     const { points } = usePoints()
 
-    // Load stats from AsyncStorage on mount
     useEffect(() => {
         const loadStats = async () => {
             try {
@@ -52,14 +53,11 @@ const PetStats = () => {
                 setLoaded(true)
             }
         }
-
         loadStats()
     }, [])
 
-    // Save stats to AsyncStorage whenever they change
     useEffect(() => {
         if (!loaded) return
-
         const saveStats = async () => {
             try {
                 await AsyncStorage.setItem('petStats', JSON.stringify({ happiness, energy, health }))
@@ -67,34 +65,27 @@ const PetStats = () => {
                 console.error('Failed to save stats to AsyncStorage:', error)
             }
         }
-
         saveStats()
     }, [happiness, energy, health, loaded])
 
-    // Decrease stats over time
     useEffect(() => {
         if (!loaded) return
-
         const interval = setInterval(() => {
-            setHappiness(prev => Math.max(0, prev - 0.5))
-            setEnergy(prev => Math.max(0, prev - 0.3))
+            setHappiness(prev => Math.max(0, prev - 0.1))
+            setEnergy(prev => Math.max(0, prev - 0.1))
             setHealth(prev => Math.max(0, prev - 0.1))
-        }, 10000) // Decrease every 10 seconds
-
+        }, 1000)
         return () => clearInterval(interval)
     }, [loaded])
 
-    // Function to increase stats when fed
     const increaseStats = () => {
         setHappiness(prev => Math.min(100, prev + 5))
         setEnergy(prev => Math.min(100, prev + 3))
         setHealth(prev => Math.min(100, prev + 2))
     }
 
-    // Individual stat bar component
     const StatBar = ({ label, value, maxValue, color }) => {
         const percentage = (value / maxValue) * 100
-
         return (
             <View style={styles.statContainer}>
                 <View style={styles.statLabelContainer}>
@@ -128,16 +119,13 @@ const PetStats = () => {
     }
 }
 
-const PetDisplay = ({ petType, backgroundData }) => {
-    // Get the background image from the ID
+const PetDisplay = ({ petType, backgroundData, happiness, energy }) => {
     let backgroundImage = null;
-
     if (backgroundData) {
         try {
             const parsedData = typeof backgroundData === 'string'
                 ? JSON.parse(backgroundData)
                 : backgroundData;
-
             if (parsedData.imagePath && backgroundImages[parsedData.imagePath]) {
                 backgroundImage = backgroundImages[parsedData.imagePath];
             }
@@ -146,20 +134,21 @@ const PetDisplay = ({ petType, backgroundData }) => {
         }
     }
 
-    // Render pet with background image
+
+    const isJumping = happiness > 70 && energy > 70;
     let PetComponent;
     switch (petType) {
         case 0: // Corgi
-            PetComponent = Corgi;
+            PetComponent = isJumping ? CorgiJump : Corgi;
             break;
         case 1: // Pomeranian
-            PetComponent = Pom;
+            PetComponent = isJumping ? PomJump : Pom;
             break;
         case 2: // Pug
-            PetComponent = Pug;
+            PetComponent = isJumping ? PugJump : Pug;
             break;
         default:
-            PetComponent = Corgi;
+            PetComponent = isJumping ? CorgiJump : Corgi;
     }
 
     return (
@@ -173,7 +162,6 @@ const PetDisplay = ({ petType, backgroundData }) => {
                     <PetComponent />
                 </ImageBackground>
             ) : (
-                // Default light gray background if no image
                 <View style={[styles.backgroundImage, { backgroundColor: '#f0f0f0' }]}>
                     <PetComponent />
                 </View>
@@ -186,11 +174,11 @@ const Home = () => {
     const { points, minusPoint } = usePoints()
     const { points: tokens } = useTokens()
     const petStatsManager = PetStats()
-    const { StatBars, increaseStats } = petStatsManager
+    const { StatBars, increaseStats, happiness, energy } = petStatsManager
     const { petData, isLoading } = usePetData()
     const [backgroundData, setBackgroundData] = useState(null)
+    const { user, isLoaded, isSignedIn } = useUser();
 
-    // Load selected background on mount
     useEffect(() => {
         const loadBackground = async () => {
             try {
@@ -202,11 +190,39 @@ const Home = () => {
                 console.error('Failed to load background:', error)
             }
         }
-
         loadBackground()
     }, [])
 
-    // Function to feed the pet
+    useEffect(() => {
+        const updatePetInFirebase = async () => {
+            if (
+                isLoaded &&
+                isSignedIn &&
+                user &&
+                petData &&
+                typeof petData.selectedPet === 'number' &&
+                typeof petData.petName === 'string'
+            ) {
+                try {
+                    const userRef = doc(db, 'users', user.id);
+                    await updateDoc(userRef, {
+                        petSelection: petData.selectedPet,
+                        petName: petData.petName.trim(),
+                    });
+                } catch (error) {
+                    console.error('Failed to update pet info in Firestore (Home):', error);
+                }
+            }
+        };
+        updatePetInFirebase();
+    }, [
+        isLoaded,
+        isSignedIn,
+        user,
+        petData.selectedPet,
+        petData.petName
+    ]);
+
     const feedPet = () => {
         if (points > 0) {
             minusPoint()
@@ -217,12 +233,10 @@ const Home = () => {
     return (
         <View style={styles.container}>
             <Text style={styles.header}>Home</Text>
-            {/* Pet Display */}
             <Spacer height={20}/>
             <View style={styles.petContainer}>
                 <View style={styles.petNameContainer}>
                     <Text style={styles.petName}>{petData.petName}</Text>
-
                     <Link href="/shop" asChild>
                         <TouchableOpacity style={styles.tokenIndicator}>
                             <FontAwesome5 name="paw" size={16} color="#505a98" />
@@ -230,21 +244,20 @@ const Home = () => {
                         </TouchableOpacity>
                     </Link>
                 </View>
-
                 <View style={styles.petDisplayArea}>
-                    <PetDisplay petType={petData.selectedPet} backgroundData={backgroundData} />
+                    <PetDisplay
+                        petType={petData.selectedPet}
+                        backgroundData={backgroundData}
+                        happiness={happiness}
+                        energy={energy}
+                    />
                 </View>
-
-                {/* Pet Stats */}
                 <StatBars />
-
-                {/* Treat Button and Points */}
                 <View style={styles.feedContainer}>
                     <View style={styles.pointsIndicator}>
                         <FontAwesome5 name="bone" size={16} color="#eb7d42" />
                         <Text style={styles.pointsText}>{points}</Text>
                     </View>
-
                     <TouchableOpacity
                         style={[
                             styles.treatButton,
@@ -261,7 +274,6 @@ const Home = () => {
                         <Text style={styles.treatText}>Feed Treat</Text>
                     </TouchableOpacity>
                 </View>
-
             </View>
             <View style={{justifyContent: 'center', alignItems: 'center'}}>
                 <Link href="/petSelection" asChild>
@@ -276,10 +288,11 @@ const Home = () => {
 
 export default function HomeWrapper() {
     const { user } = useUser();
-    updateUserStatus(user.id, 'offline');
     useEffect(() => {
-        updateUserStatus(user.id, 'offline');
-    })
+        if (user) {
+            updateUserStatus(user.id, 'offline');
+        }
+    }, [user]);
     return (
         <TokensProvider>
             <PointsProvider>

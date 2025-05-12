@@ -34,7 +34,7 @@ export const PointsProvider = ({ children }) => {
     }, [points]);
 
     const addPoint = () => {
-        setPoints(prev =>  Math.min(prev + 1, 3));
+        setPoints(prev => 100);
     };
 
     const minusPoint = () => {

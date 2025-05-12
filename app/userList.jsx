@@ -153,7 +153,7 @@ export default function UserConnectionScreen() {
             // Trigger animation
             pulseTokenIcon();
             showEarnedAnimation(newTokenRate);
-        }, 1000);
+        }, 60000);
 
         return () => {
             if (intervalId) clearInterval(intervalId);
@@ -268,7 +268,7 @@ export default function UserConnectionScreen() {
             <InAppLayout>
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeftSpace} />
-                    <Text style={styles.headerText}>    Playground</Text>
+                    <Text style={styles.headerText}>   Playground</Text>
                     <SignOutButtonSmall />
                     <Spacer width={20} />
                 </View>

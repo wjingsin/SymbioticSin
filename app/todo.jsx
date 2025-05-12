@@ -19,11 +19,12 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+import { FontAwesome5 } from "@expo/vector-icons";
+import { format, startOfWeek, endOfWeek, addWeeks, isSameWeek, parseISO } from 'date-fns';
 
 import { PointsProvider, usePoints } from "../contexts/PointsContext";
 import Spacer from "../components/Spacer";
 import InAppLayout from "../components/InAppLayout";
-import { FontAwesome5 } from "@expo/vector-icons";
 
 export default function AppWrapper() {
     return (
@@ -114,7 +115,7 @@ async function scheduleNotification(task, reminderMinutes) {
 }
 
 function App() {
-    const [tasks, setTasks] = useState({});
+    const [allTasks, setAllTasks] = useState({});
     const [taskName, setTaskName] = useState('');
     const [taskSuggestions, setTaskSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -128,6 +129,11 @@ function App() {
     const [showColorModal, setShowColorModal] = useState(false);
     const { points, addPoint } = usePoints();
 
+    // Week navigation state
+    const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+    const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    const [currentWeekEnd, setCurrentWeekEnd] = useState(endOfWeek(new Date(), { weekStartsOn: 1 }));
+
     // Load tasks and past task names from storage when the app starts
     useEffect(() => {
         loadTasks();
@@ -135,18 +141,23 @@ function App() {
         registerForPushNotificationsAsync();
     }, []);
 
+    // Update current week dates when week offset changes
+    useEffect(() => {
+        const newWeekStart = startOfWeek(addWeeks(new Date(), currentWeekOffset), { weekStartsOn: 1 });
+        const newWeekEnd = endOfWeek(addWeeks(new Date(), currentWeekOffset), { weekStartsOn: 1 });
+
+        setCurrentWeekStart(newWeekStart);
+        setCurrentWeekEnd(newWeekEnd);
+    }, [currentWeekOffset]);
+
     const loadTasks = async () => {
         try {
-            const storedTasks = await AsyncStorage.getItem('tasks');
+            const storedTasks = await AsyncStorage.getItem('allTasks');
             if (storedTasks !== null) {
-                setTasks(JSON.parse(storedTasks));
+                setAllTasks(JSON.parse(storedTasks));
             } else {
-                // Initialize with empty arrays for each weekday
-                const initialTasks = {};
-                weekdays.forEach(day => {
-                    initialTasks[day] = [];
-                });
-                setTasks(initialTasks);
+                // Initialize with empty structure
+                setAllTasks({});
             }
         } catch (error) {
             console.error('Error loading tasks:', error);
@@ -168,16 +179,16 @@ function App() {
     useEffect(() => {
         const saveTasks = async () => {
             try {
-                await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
+                await AsyncStorage.setItem('allTasks', JSON.stringify(allTasks));
             } catch (error) {
                 console.error('Error saving tasks:', error);
             }
         };
 
-        if (Object.keys(tasks).length > 0) {
+        if (Object.keys(allTasks).length > 0) {
             saveTasks();
         }
-    }, [tasks]);
+    }, [allTasks]);
 
     // Save past task names to storage whenever they change
     useEffect(() => {
@@ -215,6 +226,14 @@ function App() {
         setShowSuggestions(false);
     };
 
+    const changeWeek = (offset) => {
+        setCurrentWeekOffset(prevOffset => prevOffset + offset);
+    };
+
+    const goToCurrentWeek = () => {
+        setCurrentWeekOffset(0);
+    };
+
     const addTask = () => {
         if (taskName.trim() === '') {
             Alert.alert('Error', 'Task name cannot be empty');
@@ -230,6 +249,9 @@ function App() {
         const weekdayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
         const weekday = weekdays[weekdayIndex];
 
+        // Get the week key for the task date
+        const taskWeekStart = format(startOfWeek(taskDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
         const newTask = {
             id: Date.now().toString(),
             name: taskName,
@@ -237,14 +259,32 @@ function App() {
             completed: false,
             pointAwarded: false,
             reminderMinutes: selectedReminderOption.value,
-            color: selectedColor.value, // Add color to task
+            color: selectedColor.value,
         };
 
-        setTasks(prevTasks => {
-            const updatedTasks = {
-                ...prevTasks,
-                [weekday]: [...(prevTasks[weekday] || []), newTask]
-            };
+        setAllTasks(prevTasks => {
+            // Create a deep copy of the previous tasks
+            const updatedTasks = { ...prevTasks };
+
+            // Initialize the week if it doesn't exist
+            if (!updatedTasks[taskWeekStart]) {
+                updatedTasks[taskWeekStart] = {};
+                weekdays.forEach(day => {
+                    updatedTasks[taskWeekStart][day] = [];
+                });
+            }
+
+            // Initialize the weekday if it doesn't exist
+            if (!updatedTasks[taskWeekStart][weekday]) {
+                updatedTasks[taskWeekStart][weekday] = [];
+            }
+
+            // Add the task to the appropriate week and weekday
+            updatedTasks[taskWeekStart][weekday] = [
+                ...updatedTasks[taskWeekStart][weekday],
+                newTask
+            ];
+
             return updatedTasks;
         });
 
@@ -262,47 +302,51 @@ function App() {
         setShowAddTaskForm(false); // Hide form after adding task
     };
 
-    const toggleTaskCompletion = (weekday, taskId) => {
-        setTasks(prevTasks => {
-            const updatedWeekdayTasks = prevTasks[weekday].map(task => {
-                if (task.id === taskId) {
-                    const isBeingCompleted = !task.completed;
+    const toggleTaskCompletion = (weekKey, weekday, taskId) => {
+        setAllTasks(prevTasks => {
+            const updatedTasks = { ...prevTasks };
 
-                    // Only add point if completing (not uncompleting) and not already awarded
-                    if (isBeingCompleted && !task.pointAwarded) {
-                        addPoint();
+            if (updatedTasks[weekKey] && updatedTasks[weekKey][weekday]) {
+                updatedTasks[weekKey][weekday] = updatedTasks[weekKey][weekday].map(task => {
+                    if (task.id === taskId) {
+                        const isBeingCompleted = !task.completed;
+
+                        // Only add point if completing (not uncompleting) and not already awarded
+                        if (isBeingCompleted && !task.pointAwarded) {
+                            addPoint();
+                        }
+
+                        return {
+                            ...task,
+                            completed: !task.completed,
+                            pointAwarded: task.pointAwarded || !task.completed
+                        };
                     }
+                    return task;
+                });
+            }
 
-                    return {
-                        ...task,
-                        completed: !task.completed,
-                        pointAwarded: task.pointAwarded || !task.completed
-                    };
-                }
-                return task;
-            });
-
-            return {
-                ...prevTasks,
-                [weekday]: updatedWeekdayTasks
-            };
+            return updatedTasks;
         });
     };
 
-    const deleteTask = (weekday, taskId) => {
+    const deleteTask = (weekKey, weekday, taskId) => {
         // Cancel the notification for this task
         Notifications.cancelScheduledNotificationAsync(taskId).catch(error => {
             console.log('Error cancelling notification:', error);
         });
 
         // Remove the task from state
-        setTasks(prevTasks => {
-            const updatedWeekdayTasks = prevTasks[weekday].filter(task => task.id !== taskId);
+        setAllTasks(prevTasks => {
+            const updatedTasks = { ...prevTasks };
 
-            return {
-                ...prevTasks,
-                [weekday]: updatedWeekdayTasks
-            };
+            if (updatedTasks[weekKey] && updatedTasks[weekKey][weekday]) {
+                updatedTasks[weekKey][weekday] = updatedTasks[weekKey][weekday].filter(
+                    task => task.id !== taskId
+                );
+            }
+
+            return updatedTasks;
         });
     };
 
@@ -331,20 +375,57 @@ function App() {
         setShowColorModal(false);
     };
 
+    // Get the current week's key
+    const currentWeekKey = format(currentWeekStart, 'yyyy-MM-dd');
+
+    // Get tasks for the current week
+    const currentWeekTasks = allTasks[currentWeekKey] || {};
+
     return (
         <InAppLayout>
             <GestureHandlerRootView style={{ flex: 1 }}>
-                    <View style={styles.container}>
-                        <Spacer height={20}/>
-                        <View style={styles.headerContainer}>
-                            <View style={styles.headerLeftSpace} />
-                            <Text style={styles.header}>Tasks</Text>
-                            <View style={[styles.pointsIndicator, {marginTop: -20}]}>
-                                <FontAwesome5 name="bone" size={16} color="#eb7d42" />
-                                <Text style={styles.pointsText}> {points}</Text>
-                            </View>
+                <View style={styles.container}>
+                    <Spacer height={20}/>
+                    <View style={styles.headerContainer}>
+                        <View style={styles.headerLeftSpace} />
+                        <Text style={styles.header}>Tasks</Text>
+                        <View style={[styles.pointsIndicator, {marginTop: -20}]}>
+                            <FontAwesome5 name="bone" size={16} color="#eb7d42" />
+                            <Text style={styles.pointsText}> {points}</Text>
                         </View>
+                    </View>
 
+                    {/* Week Navigation */}
+                    {/* Week Navigation */}
+                    <View style={styles.weekNavigationContainer}>
+                        <Text style={styles.weekDateRange}>
+                            {format(currentWeekStart, 'MMM d')} - {format(currentWeekEnd, 'MMM d, yyyy')}
+                        </Text>
+
+                        <View style={styles.weekNavigationControls}>
+                            <TouchableOpacity
+                                style={styles.weekNavButton}
+                                onPress={() => changeWeek(-1)}
+                            >
+                                <Text style={styles.weekNavButtonText}>◀</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.currentWeekButton}
+                                onPress={goToCurrentWeek}
+                            >
+                                <Text style={styles.currentWeekButtonText}>
+                                    Current Week: {format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'MMM d')} - {format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'MMM d')}
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.weekNavButton}
+                                onPress={() => changeWeek(1)}
+                            >
+                                <Text style={styles.weekNavButtonText}>▶</Text>
+                            </TouchableOpacity>
+                        </View>
                         {/* Add Task Button */}
                         {!showAddTaskForm && (
                             <TouchableOpacity
@@ -354,293 +435,298 @@ function App() {
                                 <Text style={styles.addTaskButtonText}>+ Add New Task</Text>
                             </TouchableOpacity>
                         )}
+                    </View>
 
-                        {/* Add Task Form */}
-                        {showAddTaskForm && (
-                            <View style={styles.addTaskContainer}>
-                                <View style={styles.addTaskHeaderContainer}>
-                                    <Text style={styles.addTaskHeader}>Add New Task</Text>
-                                    <TouchableOpacity
-                                        onPress={() => setShowAddTaskForm(false)}
-                                        style={styles.closeButton}
-                                    >
-                                        <Text style={styles.closeButtonText}>×</Text>
-                                    </TouchableOpacity>
-                                </View>
 
-                                <View style={styles.autocompleteContainer}>
-                                    <TextInput
-                                        style={styles.input}
-                                        placeholder="Task Name"
-                                        value={taskName}
-                                        onChangeText={updateTaskSuggestions}
-                                        onFocus={() => {
-                                            if (taskName.trim() !== '' && taskSuggestions.length > 0) {
-                                                setShowSuggestions(true);
-                                            }
-                                        }}
-                                    />
-                                    {showSuggestions && (
-                                        <View style={styles.suggestionsContainer}>
-                                            <FlatList
-                                                data={taskSuggestions}
-                                                keyExtractor={(item, index) => index.toString()}
-                                                renderItem={({ item }) => (
-                                                    <TouchableOpacity
-                                                        style={styles.suggestionItem}
-                                                        onPress={() => selectSuggestion(item)}
-                                                    >
-                                                        <Text>{item}</Text>
-                                                    </TouchableOpacity>
-                                                )}
-                                                style={styles.suggestionsList}
-                                                nestedScrollEnabled={true}
-                                            />
-                                        </View>
-                                    )}
-                                </View>
 
-                                <View style={styles.colorPickerRow}>
-                                    <Text style={styles.label}>Colour:</Text>
-                                    <TouchableOpacity
-                                        style={[styles.colorButton, {backgroundColor: selectedColor.value}]}
-                                        onPress={() => setShowColorModal(true)}
-                                    >
-                                        <Text style={styles.colorButtonText}>{selectedColor.name}</Text>
-                                    </TouchableOpacity>
-                                </View>
 
-                                <View style={styles.dateTimeRow}>
-                                    <Text style={styles.label}>Date & Time:</Text>
-                                    <TouchableOpacity
-                                        style={styles.dateButton}
-                                        onPress={() => setShowDatePicker(true)}
-                                    >
-                                        <Text style={styles.dateButtonText}>
-                                            {date.toLocaleString()}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
 
-                                {showDatePicker && (
-                                    <>
-                                        <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
-                                            <View style={styles.datePickerBackdrop} />
-                                        </TouchableWithoutFeedback>
-                                        <View style={styles.datePickerContainer}>
-                                            <DateTimePicker
-                                                value={date}
-                                                mode="datetime"
-                                                display="default"
-                                                onChange={onDateChange}
-                                                style={styles.datePicker}
-                                            />
-                                            {Platform.OS === 'ios' && (
-                                                <TouchableOpacity
-                                                    style={styles.datePickerDoneButton}
-                                                    onPress={() => setShowDatePicker(false)}
-                                                >
-                                                    <Text style={styles.datePickerDoneText}>Done</Text>
-                                                </TouchableOpacity>
-                                            )}
-                                        </View>
-                                    </>
-                                )}
-
-                                <View style={styles.reminderRow}>
-                                    <Text style={styles.label}>Reminder:</Text>
-                                    <TouchableOpacity
-                                        style={styles.reminderButton}
-                                        onPress={() => setShowReminderModal(true)}
-                                    >
-                                        <Text style={styles.reminderButtonText}>
-                                            {selectedReminderOption.label} before
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-
-                                <Spacer height={15}/>
-                                <TouchableOpacity style={styles.addButton} onPress={addTask}>
-                                    <Text style={styles.addButtonText}>Add Task</Text>
+                    {/* Add Task Form */}
+                    {showAddTaskForm && (
+                        <View style={styles.addTaskContainer}>
+                            <View style={styles.addTaskHeaderContainer}>
+                                <Text style={styles.addTaskHeader}>Add New Task</Text>
+                                <TouchableOpacity
+                                    onPress={() => setShowAddTaskForm(false)}
+                                    style={styles.closeButton}
+                                >
+                                    <Text style={styles.closeButtonText}>×</Text>
                                 </TouchableOpacity>
                             </View>
-                        )}
 
-                        {/* Tasks List Section */}
-                            <ScrollView
-                                style={styles.weekdaysContainer}
-                            >
-                                {weekdays.map(weekday => (
-                                    <View key={weekday} style={styles.weekdayContainer}>
-                                        <Text style={styles.weekdayHeader}>{weekday}</Text>
-
-                                        {tasks[weekday]?.length > 0 ? (
-                                            tasks[weekday].map(task => (
-                                                <Swipeable
-                                                    key={task.id}
-                                                    renderRightActions={() => (
-                                                        <TouchableOpacity
-                                                            style={styles.deleteAction}
-                                                            onPress={() => {
-                                                                Alert.alert(
-                                                                    "Delete Task",
-                                                                    "Are you sure you want to delete this task?",
-                                                                    [
-                                                                        {
-                                                                            text: "Cancel",
-                                                                            style: "cancel"
-                                                                        },
-                                                                        {
-                                                                            text: "Delete",
-                                                                            onPress: () => deleteTask(weekday, task.id),
-                                                                            style: "destructive"
-                                                                        }
-                                                                    ]
-                                                                );
-                                                            }}
-                                                        >
-                                                            <Text style={styles.deleteActionText}>Delete</Text>
-                                                        </TouchableOpacity>
-                                                    )}
+                            <View style={styles.autocompleteContainer}>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Task Name"
+                                    value={taskName}
+                                    onChangeText={updateTaskSuggestions}
+                                    onFocus={() => {
+                                        if (taskName.trim() !== '' && taskSuggestions.length > 0) {
+                                            setShowSuggestions(true);
+                                        }
+                                    }}
+                                />
+                                {showSuggestions && (
+                                    <View style={styles.suggestionsContainer}>
+                                        <FlatList
+                                            data={taskSuggestions}
+                                            keyExtractor={(item, index) => index.toString()}
+                                            renderItem={({ item }) => (
+                                                <TouchableOpacity
+                                                    style={styles.suggestionItem}
+                                                    onPress={() => selectSuggestion(item)}
                                                 >
-                                                    <TouchableOpacity
-                                                        style={[
-                                                            styles.taskItem,
-                                                            { borderLeftWidth: 5, borderLeftColor: task.color || '#e19a50' },
-                                                            task.completed && styles.completedTask
-                                                        ]}
-                                                        onPress={() => toggleTaskCompletion(weekday, task.id)}
-                                                    >
-                                                        <View style={styles.taskDetails}>
-                                                            <Text
-                                                                style={[
-                                                                    styles.taskName,
-                                                                    task.completed && styles.completedTaskText
-                                                                ]}
-                                                            >
-                                                                {task.name}
-                                                            </Text>
-                                                            <Text style={styles.taskDateTime}>
-                                                                {new Date(task.dateTime).toLocaleString()}
-                                                            </Text>
-                                                            <Text style={styles.taskReminder}>
-                                                                Reminder: {
-                                                                task.reminderMinutes === 60 ? '1 hour' :
-                                                                    task.reminderMinutes === 120 ? '2 hours' :
-                                                                        task.reminderMinutes === 720 ? '12 hours' :
-                                                                            task.reminderMinutes === 1440 ? '1 day' :
-                                                                                `${task.reminderMinutes} minutes`
-                                                            } before
-                                                            </Text>
-                                                        </View>
-                                                        <View
-                                                            style={[
-                                                                styles.checkbox,
-                                                                task.completed && styles.checkedBox
-                                                            ]}
-                                                        >
-                                                            {task.completed && <Text style={styles.checkmark}>✓</Text>}
-                                                        </View>
-                                                    </TouchableOpacity>
-                                                </Swipeable>
-                                            ))
-                                        ) : (
-                                            <Text style={styles.noTasksText}>No tasks for {weekday}</Text>
+                                                    <Text>{item}</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                            style={styles.suggestionsList}
+                                            nestedScrollEnabled={true}
+                                        />
+                                    </View>
+                                )}
+                            </View>
+
+                            <View style={styles.colorPickerRow}>
+                                <Text style={styles.label}>Colour:</Text>
+                                <TouchableOpacity
+                                    style={[styles.colorButton, {backgroundColor: selectedColor.value}]}
+                                    onPress={() => setShowColorModal(true)}
+                                >
+                                    <Text style={styles.colorButtonText}>{selectedColor.name}</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <View style={styles.dateTimeRow}>
+                                <Text style={styles.label}>Date & Time:</Text>
+                                <TouchableOpacity
+                                    style={styles.dateButton}
+                                    onPress={() => setShowDatePicker(true)}
+                                >
+                                    <Text style={styles.dateButtonText}>
+                                        {date.toLocaleString()}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {showDatePicker && (
+                                <>
+                                    <TouchableWithoutFeedback onPress={() => setShowDatePicker(false)}>
+                                        <View style={styles.datePickerBackdrop} />
+                                    </TouchableWithoutFeedback>
+                                    <View style={styles.datePickerContainer}>
+                                        <DateTimePicker
+                                            value={date}
+                                            mode="datetime"
+                                            display="default"
+                                            onChange={onDateChange}
+                                            style={styles.datePicker}
+                                        />
+                                        {Platform.OS === 'ios' && (
+                                            <TouchableOpacity
+                                                style={styles.datePickerDoneButton}
+                                                onPress={() => setShowDatePicker(false)}
+                                            >
+                                                <Text style={styles.datePickerDoneText}>Done</Text>
+                                            </TouchableOpacity>
                                         )}
                                     </View>
-                                ))}
-                            </ScrollView>
+                                </>
+                            )}
 
-                        {/* Reminder Options Modal */}
-                        <Modal
-                            animationType="slide"
-                            transparent={true}
-                            visible={showReminderModal}
-                            onRequestClose={dismissModal}
-                        >
-                            <TouchableWithoutFeedback onPress={dismissModal}>
-                                <View style={styles.modalOverlay}>
-                                    <TouchableWithoutFeedback>
-                                        <View style={styles.modalContent}>
-                                            <Text style={styles.modalHeader}>Select Reminder Time</Text>
-                                            {reminderOptions.map((option) => (
+                            <View style={styles.reminderRow}>
+                                <Text style={styles.label}>Reminder:</Text>
+                                <TouchableOpacity
+                                    style={styles.reminderButton}
+                                    onPress={() => setShowReminderModal(true)}
+                                >
+                                    <Text style={styles.reminderButtonText}>
+                                        {selectedReminderOption.label} before
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            <Spacer height={15}/>
+                            <TouchableOpacity style={styles.addButton} onPress={addTask}>
+                                <Text style={styles.addButtonText}>Add Task</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+
+                    {/* Tasks List Section */}
+                    <ScrollView
+                        style={styles.weekdaysContainer}
+                    >
+                        {weekdays.map(weekday => (
+                            <View key={weekday} style={styles.weekdayContainer}>
+                                <Text style={styles.weekdayHeader}>{weekday}</Text>
+
+                                {currentWeekTasks[weekday]?.length > 0 ? (
+                                    currentWeekTasks[weekday].map(task => (
+                                        <Swipeable
+                                            key={task.id}
+                                            renderRightActions={() => (
                                                 <TouchableOpacity
-                                                    key={option.value}
-                                                    style={[
-                                                        styles.reminderOption,
-                                                        selectedReminderOption.value === option.value && styles.selectedReminderOption
-                                                    ]}
+                                                    style={styles.deleteAction}
                                                     onPress={() => {
-                                                        setSelectedReminderOption(option);
-                                                        setShowReminderModal(false);
+                                                        Alert.alert(
+                                                            "Delete Task",
+                                                            "Are you sure you want to delete this task?",
+                                                            [
+                                                                {
+                                                                    text: "Cancel",
+                                                                    style: "cancel"
+                                                                },
+                                                                {
+                                                                    text: "Delete",
+                                                                    onPress: () => deleteTask(currentWeekKey, weekday, task.id),
+                                                                    style: "destructive"
+                                                                }
+                                                            ]
+                                                        );
                                                     }}
                                                 >
+                                                    <Text style={styles.deleteActionText}>Delete</Text>
+                                                </TouchableOpacity>
+                                            )}
+                                        >
+                                            <TouchableOpacity
+                                                style={[
+                                                    styles.taskItem,
+                                                    { borderLeftWidth: 5, borderLeftColor: task.color || '#e19a50' },
+                                                    task.completed && styles.completedTask
+                                                ]}
+                                                onPress={() => toggleTaskCompletion(currentWeekKey, weekday, task.id)}
+                                            >
+                                                <View style={styles.taskDetails}>
                                                     <Text
                                                         style={[
-                                                            styles.reminderOptionText,
-                                                            selectedReminderOption.value === option.value && styles.selectedReminderOptionText
+                                                            styles.taskName,
+                                                            task.completed && styles.completedTaskText
                                                         ]}
                                                     >
-                                                        {option.label} before
+                                                        {task.name}
                                                     </Text>
+                                                    <Text style={styles.taskDateTime}>
+                                                        {new Date(task.dateTime).toLocaleString()}
+                                                    </Text>
+                                                    <Text style={styles.taskReminder}>
+                                                        Reminder: {
+                                                        task.reminderMinutes === 60 ? '1 hour' :
+                                                            task.reminderMinutes === 120 ? '2 hours' :
+                                                                task.reminderMinutes === 720 ? '12 hours' :
+                                                                    task.reminderMinutes === 1440 ? '1 day' :
+                                                                        `${task.reminderMinutes} minutes`
+                                                    } before
+                                                    </Text>
+                                                </View>
+                                                <View
+                                                    style={[
+                                                        styles.checkbox,
+                                                        task.completed && styles.checkedBox
+                                                    ]}
+                                                >
+                                                    {task.completed && <Text style={styles.checkmark}>✓</Text>}
+                                                </View>
+                                            </TouchableOpacity>
+                                        </Swipeable>
+                                    ))
+                                ) : (
+                                    <Text style={styles.noTasksText}>No tasks for {weekday}</Text>
+                                )}
+                            </View>
+                        ))}
+                    </ScrollView>
+
+                    {/* Reminder Options Modal */}
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={showReminderModal}
+                        onRequestClose={dismissModal}
+                    >
+                        <TouchableWithoutFeedback onPress={dismissModal}>
+                            <View style={styles.modalOverlay}>
+                                <TouchableWithoutFeedback>
+                                    <View style={styles.modalContent}>
+                                        <Text style={styles.modalHeader}>Select Reminder Time</Text>
+                                        {reminderOptions.map((option) => (
+                                            <TouchableOpacity
+                                                key={option.value}
+                                                style={[
+                                                    styles.reminderOption,
+                                                    selectedReminderOption.value === option.value && styles.selectedReminderOption
+                                                ]}
+                                                onPress={() => {
+                                                    setSelectedReminderOption(option);
+                                                    setShowReminderModal(false);
+                                                }}
+                                            >
+                                                <Text
+                                                    style={[
+                                                        styles.reminderOptionText,
+                                                        selectedReminderOption.value === option.value && styles.selectedReminderOptionText
+                                                    ]}
+                                                >
+                                                    {option.label} before
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                        <TouchableOpacity
+                                            style={styles.closeModalButton}
+                                            onPress={dismissModal}
+                                        >
+                                            <Text style={styles.closeModalButtonText}>Cancel</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableWithoutFeedback>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
+
+                    {/* Color Selection Modal */}
+                    <Modal
+                        animationType="fade"
+                        transparent={true}
+                        visible={showColorModal}
+                        onRequestClose={dismissColorModal}
+                    >
+                        <TouchableWithoutFeedback onPress={dismissColorModal}>
+                            <View style={styles.modalOverlay}>
+                                <TouchableWithoutFeedback>
+                                    <View style={styles.modalContent}>
+                                        <Text style={styles.modalHeader}>Select Task Color</Text>
+                                        <View style={styles.colorOptionsContainer}>
+                                            {colorOptions.map((color) => (
+                                                <TouchableOpacity
+                                                    key={color.name}
+                                                    style={[
+                                                        styles.colorOption,
+                                                        { backgroundColor: color.value },
+                                                        selectedColor.name === color.name && styles.selectedColorOption
+                                                    ]}
+                                                    onPress={() => {
+                                                        setSelectedColor(color);
+                                                        setShowColorModal(false);
+                                                    }}
+                                                >
+                                                    {selectedColor.name === color.name && (
+                                                        <Text style={styles.colorOptionCheck}>✓</Text>
+                                                    )}
                                                 </TouchableOpacity>
                                             ))}
-                                            <TouchableOpacity
-                                                style={styles.closeModalButton}
-                                                onPress={dismissModal}
-                                            >
-                                                <Text style={styles.closeModalButtonText}>Cancel</Text>
-                                            </TouchableOpacity>
                                         </View>
-                                    </TouchableWithoutFeedback>
-                                </View>
-                            </TouchableWithoutFeedback>
-                        </Modal>
-
-                        {/* Color Selection Modal */}
-                        <Modal
-                            animationType="fade"
-                            transparent={true}
-                            visible={showColorModal}
-                            onRequestClose={dismissColorModal}
-                        >
-                            <TouchableWithoutFeedback onPress={dismissColorModal}>
-                                <View style={styles.modalOverlay}>
-                                    <TouchableWithoutFeedback>
-                                        <View style={styles.modalContent}>
-                                            <Text style={styles.modalHeader}>Select Task Color</Text>
-                                            <View style={styles.colorOptionsContainer}>
-                                                {colorOptions.map((color) => (
-                                                    <TouchableOpacity
-                                                        key={color.name}
-                                                        style={[
-                                                            styles.colorOption,
-                                                            { backgroundColor: color.value },
-                                                            selectedColor.name === color.name && styles.selectedColorOption
-                                                        ]}
-                                                        onPress={() => {
-                                                            setSelectedColor(color);
-                                                            setShowColorModal(false);
-                                                        }}
-                                                    >
-                                                        {selectedColor.name === color.name && (
-                                                            <Text style={styles.colorOptionCheck}>✓</Text>
-                                                        )}
-                                                    </TouchableOpacity>
-                                                ))}
-                                            </View>
-                                            <TouchableOpacity
-                                                style={styles.closeModalButton}
-                                                onPress={dismissColorModal}
-                                            >
-                                                <Text style={styles.closeModalButtonText}>Cancel</Text>
-                                            </TouchableOpacity>
-                                        </View>
-                                    </TouchableWithoutFeedback>
-                                </View>
-                            </TouchableWithoutFeedback>
-                        </Modal>
-                    </View>
+                                        <TouchableOpacity
+                                            style={styles.closeModalButton}
+                                            onPress={dismissColorModal}
+                                        >
+                                            <Text style={styles.closeModalButtonText}>Cancel</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableWithoutFeedback>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </Modal>
+                </View>
             </GestureHandlerRootView>
         </InAppLayout>
     );
@@ -691,17 +777,51 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         color: '#343a40',
     },
-    addTaskButton: {
-        backgroundColor: '#e19a50',
+    // Week navigation styles
+    weekNavigationContainer: {
+        backgroundColor: 'white',
         borderRadius: 10,
-        paddingVertical: 14,
-        alignItems: 'center',
-        marginBottom: 20,
+        padding: 12,
+        marginBottom: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
         elevation: 3,
+    },
+    weekNavigationHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    weekNavButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+    },
+    weekNavButtonText: {
+        color: '#e19a50',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    weekDateRange: {
+        textAlign: 'center',
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#343a40',
+    },
+    addTaskButton: {
+        backgroundColor: '#e19a50',
+        borderRadius: 10,
+        paddingVertical: 14,
+        alignItems: 'center',
+        marginTop: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        width: '100%',
     },
     addTaskButtonText: {
         color: 'white',
@@ -1078,6 +1198,55 @@ const styles = StyleSheet.create({
     closeModalButtonText: {
         fontSize: 16,
         color: '#495057',
+    },
+    weekNavigationContainer: {
+        backgroundColor: 'white',
+        borderRadius: 10,
+        padding: 16,
+        marginBottom: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+        alignItems: 'center',
+    },
+    weekDateRange: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#343a40',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    weekNavigationControls: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+    },
+    weekNavButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e19a50',
+    },
+    weekNavButtonText: {
+        color: '#e19a50',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    currentWeekButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e19a50',
+    },
+    currentWeekButtonText: {
+        color: '#e19a50',
+        fontWeight: '600',
+        fontSize: 14,
     },
 
 });

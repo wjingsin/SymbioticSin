@@ -15,8 +15,8 @@ import Spacer from "../components/Spacer";
 
 const FocusTimer = () => {
     // Timer state
-    const [timeRemaining, setTimeRemaining] = useState(25 * 60); // 25 minutes default
-    const [selectedTime, setSelectedTime] = useState(25); // in minutes
+    const [timeRemaining, setTimeRemaining] = useState(60 * 60); // 25 minutes default
+    const [selectedTime, setSelectedTime] = useState(60); // in minutes
     const [isRunning, setIsRunning] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [petAnimation, setPetAnimation] = useState('walk'); // 'walk' or 'run'
@@ -106,7 +106,6 @@ const FocusTimer = () => {
         ]).start();
     };
 
-    // Handle timer countdown and token earning
     useEffect(() => {
         if (isRunning && !isPaused) {
             timerRef.current = setInterval(() => {
@@ -115,6 +114,14 @@ const FocusTimer = () => {
                         clearInterval(timerRef.current);
                         setIsRunning(false);
                         setPetAnimation('walk'); // Change back to walking when timer ends
+
+                        // Show alert with token information
+                        Alert.alert(
+                            "Focus Session Complete!",
+                            `You earned ${earnedThisSession} tokens in this session.\nYour total tokens: ${points}`,
+                            [{ text: "OK", onPress: () => console.log("Session complete acknowledged") }]
+                        );
+
                         return 0;
                     }
                     return prev - 1;
@@ -124,7 +131,7 @@ const FocusTimer = () => {
                 addPoint(tokenRate);
                 setEarnedThisSession(prev => prev + tokenRate);
 
-                // Trigger animations every 10 seconds to avoid too much visual noise
+                // Trigger animations every second
                 if (timeRemaining % 1 === 0) {
                     pulseTokenIcon();
                     showEarnedAnimation(tokenRate);
@@ -139,7 +146,8 @@ const FocusTimer = () => {
                 clearInterval(timerRef.current);
             }
         };
-    }, [isRunning, isPaused, addPoint, tokenRate, timeRemaining]);
+    }, [isRunning, isPaused, addPoint, tokenRate, timeRemaining, earnedThisSession, points]);
+
 
     // Format time for display (MM:SS)
     const formatTime = (seconds) => {
@@ -300,9 +308,9 @@ const FocusTimer = () => {
                         </Text>
                         <Slider
                             style={styles.slider}
-                            minimumValue={5}
+                            minimumValue={1}
                             maximumValue={120} // Extended to 2 hours
-                            step={5}
+                            step={1}
                             value={selectedTime}
                             onValueChange={handleTimeChange}
                             minimumTrackTintColor="#eb7d42"
@@ -407,7 +415,6 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 10,
-        opacity: 0.9,
     },
     timerInnerCircle: {
         width: 200,

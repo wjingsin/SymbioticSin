@@ -82,7 +82,7 @@ const PetLayerDisplay = ({ users, currentUser }) => {
 
     return (
         <ImageBackground
-            source={require('../assets/living room.png')}
+            source={require('../assets/grass.png')}
             style={styles.backgroundImage}
             resizeMode="cover"
         >
@@ -254,12 +254,12 @@ export default function UserConnectionScreen() {
     };
 
     if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#eb7d42" />
-                <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-        );
+        // return (
+        //     <View style={styles.loadingContainer}>
+        //         <ActivityIndicator size="large" color="#eb7d42" />
+        //         <Text style={styles.loadingText}>Loading...</Text>
+        //     </View>
+        // );
     }
 
     return (

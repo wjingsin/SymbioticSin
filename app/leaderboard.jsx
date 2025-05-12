@@ -114,12 +114,12 @@ export default function LeaderboardScreen() {
     };
 
     if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#eb7d42" />
-                <Text style={styles.loadingText}>Loading...</Text>
-            </View>
-        );
+        // return (
+        //     <View style={styles.loadingContainer}>
+        //         <ActivityIndicator size="large" color="#eb7d42" />
+        //         <Text style={styles.loadingText}>Loading...</Text>
+        //     </View>
+        // );
     }
 
     if (error) {
@@ -131,11 +131,11 @@ export default function LeaderboardScreen() {
     }
 
     if (!users.length) {
-        return (
-            <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>No users found.</Text>
-            </View>
-        );
+        // return (
+        //     <View style={styles.loadingContainer}>
+        //         <Text style={styles.loadingText}>No users found.</Text>
+        //     </View>
+        // );
     }
 
     return (

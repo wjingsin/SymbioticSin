@@ -2,7 +2,7 @@ import { usePathname, Link } from 'expo-router'
 import { StyleSheet, useColorScheme, Pressable } from 'react-native'
 import { Colors } from '../constants/Colors'
 import ThemedView from "../components/ThemedView";
-import { FontAwesome } from '@expo/vector-icons';
+import {FontAwesome, MaterialCommunityIcons, MaterialIcons} from '@expo/vector-icons';
 
 const RootLayout = ({ children }) => {
     const colorScheme = useColorScheme()
@@ -20,9 +20,9 @@ const RootLayout = ({ children }) => {
             <ThemedView style={styles.layoutBottom}>
                 <Link href="/todo" asChild>
                     <Pressable style={styles.footerItem}>
-                        <FontAwesome
-                            name="tasks"
-                            size={26}
+                        <MaterialCommunityIcons
+                            name="format-list-bulleted"
+                            size={23}
                             color={pathname === "/todo" ? activeColor : inactiveColor}
                         />
                     </Pressable>
@@ -31,9 +31,9 @@ const RootLayout = ({ children }) => {
                 {/* New Focus Icon */}
                 <Link href="/focus" asChild>
                     <Pressable style={styles.footerItem}>
-                        <FontAwesome
-                            name="clock-o" // Or "hourglass-half"
-                            size={26}
+                        <MaterialCommunityIcons
+                            name="timer-sand" // Or "hourglass-half"
+                            size={22}
                             color={pathname === "/focus" ? activeColor : inactiveColor}
                         />
                     </Pressable>
@@ -41,8 +41,8 @@ const RootLayout = ({ children }) => {
 
                 <Link href="/home" asChild>
                     <Pressable style={styles.footerItem}>
-                        <FontAwesome
-                            name="home"
+                        <MaterialCommunityIcons
+                            name="dog"
                             size={26}
                             color={pathname === "/home" ? activeColor : inactiveColor}
                         />
@@ -51,8 +51,8 @@ const RootLayout = ({ children }) => {
 
                 <Link href="/userList" asChild>
                     <Pressable style={styles.footerItem}>
-                        <FontAwesome
-                            name="user"
+                        <MaterialIcons
+                            name="grass"
                             size={26}
                             color={pathname === "/userList" ? activeColor : inactiveColor}
                         />
@@ -61,8 +61,8 @@ const RootLayout = ({ children }) => {
 
                 <Link href="/leaderboard" asChild>
                     <Pressable style={styles.footerItem}>
-                        <FontAwesome
-                            name="users"
+                        <MaterialIcons
+                            name="leaderboard"
                             size={26}
                             color={pathname === "/leaderboard" ? activeColor : inactiveColor}
                         />

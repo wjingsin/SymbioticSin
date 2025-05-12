@@ -21,7 +21,7 @@ import { db } from '../firebaseConfig';
 
 // Import background images
 import background1 from '../assets/living room.png';
-import background2 from '../assets/living room.png';
+import background2 from '../assets/grass.png';
 import background3 from '../assets/living room.png';
 
 const backgroundImages = {

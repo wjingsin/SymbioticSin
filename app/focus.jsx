@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Animated } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Animated, Alert } from 'react-native';
 import Slider from '@react-native-community/slider';
-import Corgi from "../components/corgi_running_park";
-import CorgiJump from "../components/corgi_jumping";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Corgi from "../components/corgi_sniffing_park";
+import CorgiJump from "../components/corgi_running_park";
 import Pom from "../components/pom_animated";
 import PomJump from "../components/pom_animated";
 import Pug from "../components/pug_animated";
 import PugJump from "../components/pug_animated";
 import InAppLayout from "../components/InAppLayout";
 import { usePetData } from "../contexts/PetContext";
+import { useTokens } from "../contexts/TokenContext";
 import Spacer from "../components/Spacer";
 
 const FocusTimer = () => {
@@ -17,13 +19,24 @@ const FocusTimer = () => {
     const [selectedTime, setSelectedTime] = useState(25); // in minutes
     const [isRunning, setIsRunning] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [petAnimation, setPetAnimation] = useState('walk'); // 'walk' or 'run'
+    const [earnedThisSession, setEarnedThisSession] = useState(0);
+    const [tokenRate, setTokenRate] = useState(1); // Tokens per second
 
     // Animation for timer pulse effect
     const pulseAnimation = useRef(new Animated.Value(1)).current;
     const timerRef = useRef(null);
 
+    // Token animation values
+    const tokenPulse = useRef(new Animated.Value(1)).current;
+    const tokenEarnedAnim = useRef(new Animated.Value(0)).current;
+    const tokenEarnedOpacity = useRef(new Animated.Value(0)).current;
+
     // Get pet data from context
     const { petData } = usePetData();
+
+    // Get token functions from context
+    const { points, addPoint } = useTokens();
 
     // Start/stop pulse animation based on timer state
     useEffect(() => {
@@ -47,7 +60,53 @@ const FocusTimer = () => {
         }
     }, [isRunning, isPaused]);
 
-    // Handle timer countdown
+    // Update pet animation based on timer state
+    useEffect(() => {
+        if (isRunning && !isPaused) {
+            setPetAnimation('run');
+        } else {
+            // Use walk animation when paused OR not running
+            setPetAnimation('walk');
+        }
+    }, [isRunning, isPaused]);
+
+    // Animation functions for tokens
+    const pulseTokenIcon = () => {
+        Animated.sequence([
+            Animated.timing(tokenPulse, {
+                toValue: 1.2,
+                duration: 200,
+                useNativeDriver: true
+            }),
+            Animated.timing(tokenPulse, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true
+            })
+        ]).start();
+    };
+
+    const showEarnedAnimation = (amount) => {
+        // Reset position
+        tokenEarnedAnim.setValue(0);
+        tokenEarnedOpacity.setValue(1);
+
+        // Animate floating up and fading
+        Animated.parallel([
+            Animated.timing(tokenEarnedAnim, {
+                toValue: -50,
+                duration: 1000,
+                useNativeDriver: true
+            }),
+            Animated.timing(tokenEarnedOpacity, {
+                toValue: 0,
+                duration: 1000,
+                useNativeDriver: true
+            })
+        ]).start();
+    };
+
+    // Handle timer countdown and token earning
     useEffect(() => {
         if (isRunning && !isPaused) {
             timerRef.current = setInterval(() => {
@@ -55,10 +114,21 @@ const FocusTimer = () => {
                     if (prev <= 1) {
                         clearInterval(timerRef.current);
                         setIsRunning(false);
+                        setPetAnimation('walk'); // Change back to walking when timer ends
                         return 0;
                     }
                     return prev - 1;
                 });
+
+                // Add tokens per second of focus time
+                addPoint(tokenRate);
+                setEarnedThisSession(prev => prev + tokenRate);
+
+                // Trigger animations every 10 seconds to avoid too much visual noise
+                if (timeRemaining % 1 === 0) {
+                    pulseTokenIcon();
+                    showEarnedAnimation(tokenRate);
+                }
             }, 1000);
         } else {
             clearInterval(timerRef.current);
@@ -69,7 +139,7 @@ const FocusTimer = () => {
                 clearInterval(timerRef.current);
             }
         };
-    }, [isRunning, isPaused]);
+    }, [isRunning, isPaused, addPoint, tokenRate, timeRemaining]);
 
     // Format time for display (MM:SS)
     const formatTime = (seconds) => {
@@ -90,32 +160,68 @@ const FocusTimer = () => {
         setTimeRemaining(selectedTime * 60);
         setIsRunning(true);
         setIsPaused(false);
+        setPetAnimation('run'); // Change to running when timer starts
+        setEarnedThisSession(0); // Reset earned tokens for new session
     };
 
     // Pause timer
     const pauseTimer = () => {
         setIsPaused(true);
+        setPetAnimation('walk'); // Explicitly set to walk when paused
     };
 
     // Resume timer
     const resumeTimer = () => {
         setIsPaused(false);
+        setPetAnimation('run'); // Set back to run when resumed
+    };
+
+    // Quit current session
+    const quitSession = () => {
+        Alert.alert(
+            "Quit Session",
+            "Are you sure you want to quit your current focus session?",
+            [
+                {
+                    text: "Cancel",
+                    style: "cancel"
+                },
+                {
+                    text: "Quit",
+                    onPress: () => {
+                        clearInterval(timerRef.current);
+                        setIsRunning(false);
+                        setIsPaused(false);
+                        setTimeRemaining(selectedTime * 60);
+                        setPetAnimation('walk');
+                        setEarnedThisSession(0); // Reset earned tokens when quitting
+                    },
+                    style: "destructive"
+                }
+            ]
+        );
     };
 
     // Determine which pet component to render
     let PetComponent;
+    let PetRunningComponent;
+
     switch (petData?.selectedPet) {
         case 0: // Corgi
             PetComponent = Corgi;
+            PetRunningComponent = CorgiJump;
             break;
         case 1: // Pomeranian
             PetComponent = Pom;
+            PetRunningComponent = PomJump;
             break;
         case 2: // Pug
             PetComponent = Pug;
+            PetRunningComponent = PugJump;
             break;
         default:
             PetComponent = Corgi;
+            PetRunningComponent = CorgiJump;
     }
 
     return (
@@ -129,7 +235,7 @@ const FocusTimer = () => {
                 <View style={styles.petBackgroundContainer}>
                     {/* Pet as background */}
                     <View style={styles.petBackground}>
-                        <PetComponent />
+                        {petAnimation === 'walk' ? <PetComponent /> : <PetRunningComponent />}
                     </View>
 
                     {/* Timer Overlay */}
@@ -151,37 +257,51 @@ const FocusTimer = () => {
                                         <Text style={styles.buttonText}>START</Text>
                                     </TouchableOpacity>
                                 ) : isPaused ? (
-                                    <TouchableOpacity
-                                        style={styles.resumeButton}
-                                        onPress={resumeTimer}
-                                    >
-                                        <Text style={styles.buttonText}>RESUME</Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.buttonRow}>
+                                        <TouchableOpacity
+                                            style={styles.resumeButton}
+                                            onPress={resumeTimer}
+                                        >
+                                            <Text style={styles.buttonText}>RESUME</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.quitButton}
+                                            onPress={quitSession}
+                                        >
+                                            <Text style={styles.buttonText}>QUIT</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 ) : (
-                                    <TouchableOpacity
-                                        style={styles.pauseButton}
-                                        onPress={pauseTimer}
-                                    >
-                                        <Text style={styles.buttonText}>PAUSE</Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.buttonRow}>
+                                        <TouchableOpacity
+                                            style={styles.pauseButton}
+                                            onPress={pauseTimer}
+                                        >
+                                            <Text style={styles.buttonText}>PAUSE</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.quitButton}
+                                            onPress={quitSession}
+                                        >
+                                            <Text style={styles.buttonText}>QUIT</Text>
+                                        </TouchableOpacity>
+                                    </View>
                                 )}
                             </View>
                         </Animated.View>
-                        <Spacer height={300}/>
                     </View>
-
                 </View>
 
                 {/* Time Selection Slider (only visible when timer is not running) */}
                 {!isRunning && (
-                    <View style={styles.sliderContainer}>
+                    <View style={styles.tokenContainer}>
                         <Text style={styles.sliderLabel}>
                             Focus Time: {selectedTime} min
                         </Text>
                         <Slider
                             style={styles.slider}
                             minimumValue={5}
-                            maximumValue={60}
+                            maximumValue={120} // Extended to 2 hours
                             step={5}
                             value={selectedTime}
                             onValueChange={handleTimeChange}
@@ -191,7 +311,46 @@ const FocusTimer = () => {
                         />
                     </View>
                 )}
+
+
+                {/* Token counter (visible when timer is running) - Using the same style as in playground */}
+                {isRunning && (
+                    <View style={styles.tokenContainer}>
+                        <View style={styles.totalTokensContainer}>
+                            <Animated.View style={{ transform: [{ scale: tokenPulse }] }}>
+                                <MaterialCommunityIcons name="paw" size={24} color="#505a98" />
+                            </Animated.View>
+                            <Text style={styles.totalTokens}>{points}</Text>
+
+                            {/* Animated earned tokens */}
+                            <Animated.Text
+                                style={[
+                                    styles.earnedTokens,
+                                    {
+                                        opacity: tokenEarnedOpacity,
+                                        transform: [{ translateY: tokenEarnedAnim }]
+                                    }
+                                ]}
+                            >
+                                +{tokenRate}
+                            </Animated.Text>
+                        </View>
+
+                        <View style={styles.tokenRateContainer}>
+                            <Text style={styles.tokenRateText}>
+                                {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#505a98" /> / sec
+                            </Text>
+                        </View>
+
+                        <View style={styles.sessionStatsContainer}>
+                            <Text style={styles.sessionStatsText}>
+                                Earned this session: {earnedThisSession}
+                            </Text>
+                        </View>
+                    </View>
+                )}
             </View>
+
         </InAppLayout>
     );
 };
@@ -231,15 +390,15 @@ const styles = StyleSheet.create({
         top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
+        bottom: 300,
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 10,
     },
     timerCircle: {
-        width: 180,
+        width: 220,
         height: 180,
-        borderRadius: 110,
+        borderRadius: 30,
         backgroundColor: 'rgba(255, 255, 255, 0.9)',
         alignItems: 'center',
         justifyContent: 'center',
@@ -248,12 +407,13 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 10,
+        opacity: 0.9,
     },
     timerInnerCircle: {
-        width: 160,
-        height: 160,
+        width: 200,
+        height: 200,
         borderRadius: 100,
-        backgroundColor: 'white',
+        // backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -262,6 +422,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#343a40',
         marginBottom: 10,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 5,
     },
     startButton: {
         backgroundColor: '#eb7d42',
@@ -272,23 +438,40 @@ const styles = StyleSheet.create({
     pauseButton: {
         backgroundColor: '#ff6b6b',
         paddingVertical: 10,
-        paddingHorizontal: 30,
+        paddingHorizontal: 20,
         borderRadius: 25,
+        marginRight: 10,
     },
     resumeButton: {
         backgroundColor: '#eb7d42',
         paddingVertical: 10,
-        paddingHorizontal: 30,
+        paddingHorizontal: 20,
+        borderRadius: 25,
+        marginRight: 10,
+    },
+    quitButton: {
+        backgroundColor: '#6c757d',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
         borderRadius: 25,
     },
     buttonText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: 14,
         fontWeight: 'bold',
     },
+// In your StyleSheet
     sliderContainer: {
+        backgroundColor: '#fafcff',
+        borderRadius: 15,
+        padding: 15,
+        marginHorizontal: 20,
         marginTop: 20,
-        paddingHorizontal: 20,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
     },
     sliderLabel: {
         textAlign: 'center',
@@ -300,6 +483,60 @@ const styles = StyleSheet.create({
     slider: {
         width: '100%',
         height: 40,
+    },
+
+
+    // Token UI styles copied from userConnection.js
+    tokenContainer: {
+        backgroundColor: '#fafcff',
+        borderRadius: 15,
+        padding: 5,
+        marginHorizontal: 0,
+        marginTop: 0,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 3,
+        elevation: 2,
+    },
+    totalTokensContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+    },
+    totalTokens: {
+        fontSize: 28,
+        fontWeight: 'bold',
+        color: '#333',
+        marginLeft: 8,
+    },
+    earnedTokens: {
+        position: 'absolute',
+        right: -20,
+        color: '#505a98',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    tokenRateContainer: {
+        alignItems: 'center',
+        marginTop: 5,
+    },
+    tokenRateText: {
+        fontSize: 16,
+        color: '#555',
+        fontWeight: '600',
+    },
+    sessionStatsContainer: {
+        alignItems: 'center',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#eaeaea',
+    },
+    sessionStatsText: {
+        fontSize: 12,
+        color: '#888',
     },
 });
 

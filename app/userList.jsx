@@ -273,43 +273,7 @@ export default function UserConnectionScreen() {
                     <Spacer width={20} />
                 </View>
 
-                {/* Token Display */}
-                <View style={styles.tokenContainer}>
-                    <View style={styles.totalTokensContainer}>
-                        <Animated.View style={{ transform: [{ scale: tokenPulse }] }}>
-                            <MaterialCommunityIcons name="paw" size={24} color="#505a98" />
-                        </Animated.View>
-                        <Text style={styles.totalTokens}>{points}</Text>
 
-                        {/* Animated earned tokens */}
-                        <Animated.Text
-                            style={[
-                                styles.earnedTokens,
-                                {
-                                    opacity: tokenEarnedOpacity,
-                                    transform: [{ translateY: tokenEarnedAnim }]
-                                }
-                            ]}
-                        >
-                            +{tokenRate}
-                        </Animated.Text>
-                    </View>
-
-                    <View style={styles.tokenRateContainer}>
-                        <Text style={styles.tokenRateText}>
-                            {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#505a98" /> / min
-                        </Text>
-                        <Text style={styles.tokenBoostText}>
-                            {onlineCount > 0 ? `+${onlineCount*100}% boost from other pets!` : 'No boost'}
-                        </Text>
-                    </View>
-
-                    <View style={styles.sessionStatsContainer}>
-                        <Text style={styles.sessionStatsText}>
-                            Earned this visit: {earnedThisSession}
-                        </Text>
-                    </View>
-                </View>
 
                 <Spacer height={10} />
 
@@ -365,7 +329,44 @@ export default function UserConnectionScreen() {
                         />
                     )}
                 </View>
-                <Spacer height={10} />
+                <Spacer height={20} />
+                {/* Token Display */}
+                <View style={styles.tokenContainer}>
+                    <View style={styles.totalTokensContainer}>
+                        <Animated.View style={{ transform: [{ scale: tokenPulse }] }}>
+                            <MaterialCommunityIcons name="paw" size={24} color="#505a98" />
+                        </Animated.View>
+                        <Text style={styles.totalTokens}>{points}</Text>
+
+                        {/* Animated earned tokens */}
+                        <Animated.Text
+                            style={[
+                                styles.earnedTokens,
+                                {
+                                    opacity: tokenEarnedOpacity,
+                                    transform: [{ translateY: tokenEarnedAnim }]
+                                }
+                            ]}
+                        >
+                            +{tokenRate}
+                        </Animated.Text>
+                    </View>
+
+                    <View style={styles.tokenRateContainer}>
+                        <Text style={styles.tokenRateText}>
+                            {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#505a98" /> / min
+                        </Text>
+                        <Text style={styles.tokenBoostText}>
+                            {onlineCount > 0 ? `+${onlineCount*100}% boost from other pets!` : 'No boost'}
+                        </Text>
+                    </View>
+
+                    <View style={styles.sessionStatsContainer}>
+                        <Text style={styles.sessionStatsText}>
+                            Earned this visit: {earnedThisSession}
+                        </Text>
+                    </View>
+                </View><Spacer height={10} />
             </InAppLayout>
         </View>
     );
@@ -477,6 +478,7 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
         elevation: 3,
         overflow: 'hidden',
+
     },
     listHeaderContainer: {
         flexDirection: 'row',

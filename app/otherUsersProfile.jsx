@@ -4,9 +4,9 @@ import {
     Text,
     View,
     ImageBackground,
-    ActivityIndicator
+    ActivityIndicator, TouchableOpacity
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import {router, useLocalSearchParams} from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import InAppLayout from "../components/InAppLayout";
@@ -18,8 +18,8 @@ import Spacer from "../components/Spacer";
 
 // Import background images
 import background1 from '../assets/living room.png';
-import background2 from '../assets/living room.png';
-import background3 from '../assets/living room.png';
+import background2 from '../assets/wreck_it_ralph_880.0.1491200032.png';
+import background3 from '../assets/starry_night.png';
 
 // Map of background IDs to image sources
 const backgroundImages = {
@@ -151,8 +151,15 @@ export default function UserProfile() {
     return (
         <InAppLayout>
             <View style={styles.container}>
-                <Text style={styles.header}>Pet Profile</Text>
                 <Spacer height={20}/>
+                <View style={styles.header}>
+                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                        <FontAwesome5 name="arrow-left" size={20} color="#555" />
+                    </TouchableOpacity>
+                    <Text style={styles.headerTitle}>User Profile</Text>
+                    <Spacer width={15}/>
+                </View>
+                <Spacer height={100}/>
 
                 <View style={styles.petContainer}>
                     <View style={styles.petNameContainer}>
@@ -285,5 +292,16 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: '#333',
+    },
+    headerTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#343a40',
+    },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
     },
 });

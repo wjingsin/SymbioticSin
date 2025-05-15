@@ -34,9 +34,33 @@ export default function useClerkFirebaseSync() {
                     }
                 }
 
+                // Get background data from AsyncStorage
+                let backgroundData = null;
+                try {
+                    const savedBackground = await AsyncStorage.getItem('selectedBackground');
+                    if (savedBackground) {
+                        backgroundData = JSON.parse(savedBackground);
+                    }
+                } catch (error) {
+                    console.error('Error reading background data from AsyncStorage:', error);
+                }
+
                 // Check if user doc exists
                 const userSnap = await getDoc(userRef);
                 const isNewUser = !userSnap.exists();
+
+                // If user exists and has background data in Firebase but not in AsyncStorage,
+                // update AsyncStorage with Firebase data
+                if (!isNewUser && !backgroundData && userSnap.data()?.backgroundData) {
+                    try {
+                        await AsyncStorage.setItem(
+                            'selectedBackground',
+                            JSON.stringify(userSnap.data().backgroundData)
+                        );
+                    } catch (error) {
+                        console.error('Error saving background data to AsyncStorage:', error);
+                    }
+                }
 
                 // Prepare data to update
                 const data = {
@@ -51,6 +75,11 @@ export default function useClerkFirebaseSync() {
                     petName,
                 };
 
+                // Include background data if available
+                if (backgroundData) {
+                    data.backgroundData = backgroundData;
+                }
+
                 // Only set createdAt and tokens if new user
                 if (isNewUser) {
                     data.createdAt = serverTimestamp();
@@ -63,4 +92,32 @@ export default function useClerkFirebaseSync() {
 
         syncUserToFirebase();
     }, [isLoaded, isSignedIn, user, petContext]);
+
+    // Add a second effect to handle background changes
+    useEffect(() => {
+        const syncBackgroundChanges = async () => {
+            if (isLoaded && isSignedIn && user) {
+                const handleBackgroundChange = async () => {
+                    try {
+                        const savedBackground = await AsyncStorage.getItem('selectedBackground');
+                        if (savedBackground) {
+                            const backgroundData = JSON.parse(savedBackground);
+                            const userRef = doc(db, 'users', user.id);
+                            await setDoc(userRef, { backgroundData }, { merge: true });
+                        }
+                    } catch (error) {
+                        console.error('Error syncing background to Firebase:', error);
+                    }
+                };
+
+                // Initial sync
+                handleBackgroundChange();
+
+                // You could set up a listener here if needed for real-time updates
+                // This would require additional implementation
+            }
+        };
+
+        syncBackgroundChanges();
+    }, [isLoaded, isSignedIn, user]);
 }

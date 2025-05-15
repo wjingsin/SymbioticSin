@@ -5,31 +5,34 @@ import { useTokens } from "../contexts/TokenContext";
 import InAppLayout from "../components/InAppLayout";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
+import { useUser } from '@clerk/clerk-expo';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebaseConfig';
 
 // Import background images
 // Replace these with actual imports from your assets folder
 import background1 from '../assets/living room.png';
-import background2 from '../assets/living room.png';
-import background3 from '../assets/living room.png'
+import background2 from '../assets/wreck_it_ralph_880.0.1491200032.png';
+import background3 from '../assets/starry_night.png'
 
 const backgroundOptions = [
     {
         id: '1',
-        name: 'Sunny Meadow',
+        name: 'Living Room',
         image: background1,
         thumbnailColor: '#a8e6cf',
         price: 1000,
-        description: 'A peaceful meadow with bright sunshine',
+        description: 'Your pet\'s living area',
         imageUri: require('../assets/living room.png')
     },
     {
         id: '2',
-        name: 'Sunset Beach',
+        name: 'wreck-it-ralph',
         image: background2,
         thumbnailColor: '#ffaaa5',
         price: 2000,
-        description: 'A beautiful beach at sunset',
-        imageUri: require('../assets/living room.png')
+        description: 'wreck',
+        imageUri: require('../assets/wreck_it_ralph_880.0.1491200032.png')
     },
     {
         id: '3',
@@ -38,7 +41,7 @@ const backgroundOptions = [
         thumbnailColor: '#3a4f6a',
         price: 3000,
         description: 'A magical night sky filled with stars',
-        imageUri: require('../assets/living room.png')
+        imageUri: require('../assets/starry_night.png')
     },
 ];
 
@@ -54,7 +57,6 @@ const BackgroundItem = ({ item, onPurchase, purchasedItems }) => {
                     resizeMode="cover"
                 />
             </View>
-
             <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDescription}>{item.description}</Text>
@@ -84,6 +86,7 @@ const Shop = () => {
     const { points, minusPoint } = useTokens();
     const [purchasedItems, setPurchasedItems] = useState([]);
     const [selectedBackground, setSelectedBackground] = useState(null);
+    const { user } = useUser();
 
     // Load purchased items and selected background on mount
     useEffect(() => {
@@ -112,14 +115,23 @@ const Shop = () => {
         if (purchasedItems.includes(item.id)) {
             try {
                 // Store the background information in AsyncStorage
-                // This should include the id and the key for the image
                 const backgroundData = {
                     id: item.id,
+                    name: item.name,
                     imagePath: item.id  // We'll use the id to look up the image in Home.jsx
                 };
 
                 await AsyncStorage.setItem('selectedBackground', JSON.stringify(backgroundData));
                 setSelectedBackground(backgroundData);
+
+                // Update background in Firebase
+                if (user && user.id) {
+                    const userRef = doc(db, 'users', user.id);
+                    await updateDoc(userRef, {
+                        backgroundData: backgroundData
+                    });
+                }
+
                 Alert.alert('Success', `${item.name} background applied!`);
 
                 // Return to home screen to see changes
@@ -147,11 +159,21 @@ const Shop = () => {
                 // Apply the background
                 const backgroundData = {
                     id: item.id,
+                    name: item.name,
                     imagePath: item.id  // We'll use the id to look up the image in Home.jsx
                 };
 
                 await AsyncStorage.setItem('selectedBackground', JSON.stringify(backgroundData));
                 setSelectedBackground(backgroundData);
+
+                // Update background and purchased items in Firebase
+                if (user && user.id) {
+                    const userRef = doc(db, 'users', user.id);
+                    await updateDoc(userRef, {
+                        backgroundData: backgroundData,
+                        purchasedBackgrounds: newPurchasedItems
+                    });
+                }
 
                 Alert.alert('Success', `${item.name} background purchased and applied!`);
 
@@ -177,7 +199,7 @@ const Shop = () => {
                     </TouchableOpacity>
                     <Text style={styles.headerTitle}>Background Shop</Text>
                     <View style={styles.tokenContainer}>
-                        <FontAwesome5 name="coins" size={16} color="#538ed5" />
+                        <FontAwesome5 name="paw" size={16} color="#538ed5" />
                         <Text style={styles.tokenText}>{points}</Text>
                     </View>
                 </View>

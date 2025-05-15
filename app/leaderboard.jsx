@@ -18,6 +18,7 @@ import { PET_TYPES } from "../contexts/PetContext";
 import { useTokens } from '../contexts/TokenContext'; // <-- Add this
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import {FontAwesome, FontAwesome5} from "@expo/vector-icons";
 
 // Pet images
 const PET_IMAGES = {
@@ -174,10 +175,7 @@ export default function LeaderboardScreen() {
                                 </View>
                                 <View style={styles.tokenContainer}>
                                     <Text style={styles.tokenText}>{item.tokens}</Text>
-                                    <Image
-                                        source={require('../assets/corgi1.png')}
-                                        style={styles.tokenIcon}
-                                    />
+                                    <FontAwesome5 name="paw" size={16} color="#505a98" />
                                 </View>
                             </TouchableOpacity>
                         );

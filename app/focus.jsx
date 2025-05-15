@@ -8,6 +8,7 @@ import Pom from "../components/pom_animated";
 import PomJump from "../components/pom_animated";
 import Pug from "../components/pug_animated";
 import PugJump from "../components/pug_animated";
+import NoPetAnimated from "../components/nopet_animated";
 import InAppLayout from "../components/InAppLayout";
 import { usePetData } from "../contexts/PetContext";
 import { useTokens } from "../contexts/TokenContext";
@@ -15,13 +16,13 @@ import Spacer from "../components/Spacer";
 
 const FocusTimer = () => {
     // Timer state
-    const [timeRemaining, setTimeRemaining] = useState(60 * 60); // 25 minutes default
-    const [selectedTime, setSelectedTime] = useState(60); // in minutes
+    const [timeRemaining, setTimeRemaining] = useState(60 * 60);
+    const [selectedTime, setSelectedTime] = useState(60);
     const [isRunning, setIsRunning] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
-    const [petAnimation, setPetAnimation] = useState('walk'); // 'walk' or 'run'
+    const [petAnimation, setPetAnimation] = useState('walk');
     const [earnedThisSession, setEarnedThisSession] = useState(0);
-    const [tokenRate, setTokenRate] = useState(1); // Tokens per second
+    const [tokenRate, setTokenRate] = useState(1);
 
     // Animation for timer pulse effect
     const pulseAnimation = useRef(new Animated.Value(1)).current;
@@ -65,7 +66,6 @@ const FocusTimer = () => {
         if (isRunning && !isPaused) {
             setPetAnimation('run');
         } else {
-            // Use walk animation when paused OR not running
             setPetAnimation('walk');
         }
     }, [isRunning, isPaused]);
@@ -86,12 +86,10 @@ const FocusTimer = () => {
         ]).start();
     };
 
-    const showEarnedAnimation = (amount) => {
-        // Reset position
+    const showEarnedAnimation = () => {
         tokenEarnedAnim.setValue(0);
         tokenEarnedOpacity.setValue(1);
 
-        // Animate floating up and fading
         Animated.parallel([
             Animated.timing(tokenEarnedAnim, {
                 toValue: -50,
@@ -113,9 +111,8 @@ const FocusTimer = () => {
                     if (prev <= 1) {
                         clearInterval(timerRef.current);
                         setIsRunning(false);
-                        setPetAnimation('walk'); // Change back to walking when timer ends
+                        setPetAnimation('walk');
 
-                        // Show alert with token information
                         Alert.alert(
                             "Focus Session Complete!",
                             `You earned ${earnedThisSession} tokens in this session.\nYour total tokens: ${points}`,
@@ -127,14 +124,12 @@ const FocusTimer = () => {
                     return prev - 1;
                 });
 
-                // Add tokens per second of focus time
-                addPoint(tokenRate);
+                addPoint(tokenRate + 1000);
                 setEarnedThisSession(prev => prev + tokenRate);
 
-                // Trigger animations every second
                 if (timeRemaining % 1 === 0) {
                     pulseTokenIcon();
-                    showEarnedAnimation(tokenRate);
+                    showEarnedAnimation();
                 }
             }, 1000);
         } else {
@@ -147,7 +142,6 @@ const FocusTimer = () => {
             }
         };
     }, [isRunning, isPaused, addPoint, tokenRate, timeRemaining, earnedThisSession, points]);
-
 
     // Format time for display (MM:SS)
     const formatTime = (seconds) => {
@@ -168,20 +162,20 @@ const FocusTimer = () => {
         setTimeRemaining(selectedTime * 60);
         setIsRunning(true);
         setIsPaused(false);
-        setPetAnimation('run'); // Change to running when timer starts
-        setEarnedThisSession(0); // Reset earned tokens for new session
+        setPetAnimation('run');
+        setEarnedThisSession(0);
     };
 
     // Pause timer
     const pauseTimer = () => {
         setIsPaused(true);
-        setPetAnimation('walk'); // Explicitly set to walk when paused
+        setPetAnimation('walk');
     };
 
     // Resume timer
     const resumeTimer = () => {
         setIsPaused(false);
-        setPetAnimation('run'); // Set back to run when resumed
+        setPetAnimation('run');
     };
 
     // Quit current session
@@ -202,7 +196,7 @@ const FocusTimer = () => {
                         setIsPaused(false);
                         setTimeRemaining(selectedTime * 60);
                         setPetAnimation('walk');
-                        setEarnedThisSession(0); // Reset earned tokens when quitting
+                        setEarnedThisSession(0);
                     },
                     style: "destructive"
                 }
@@ -214,22 +208,29 @@ const FocusTimer = () => {
     let PetComponent;
     let PetRunningComponent;
 
-    switch (petData?.selectedPet) {
-        case 0: // Corgi
-            PetComponent = Corgi;
-            PetRunningComponent = CorgiJump;
-            break;
-        case 1: // Pomeranian
-            PetComponent = Pom;
-            PetRunningComponent = PomJump;
-            break;
-        case 2: // Pug
-            PetComponent = Pug;
-            PetRunningComponent = PugJump;
-            break;
-        default:
-            PetComponent = Corgi;
-            PetRunningComponent = CorgiJump;
+    if (!petData.hasPet) {
+        // If user doesn't have a pet, use NoPetAnimated for both states
+        PetComponent = NoPetAnimated;
+        PetRunningComponent = NoPetAnimated;
+    } else {
+        // If user has a pet, determine which pet to show
+        switch (petData.selectedPet) {
+            case 0: // Corgi
+                PetComponent = Corgi;
+                PetRunningComponent = CorgiJump;
+                break;
+            case 1: // Pomeranian
+                PetComponent = Pom;
+                PetRunningComponent = PomJump;
+                break;
+            case 2: // Pug
+                PetComponent = Pug;
+                PetRunningComponent = PugJump;
+                break;
+            default:
+                PetComponent = Corgi;
+                PetRunningComponent = CorgiJump;
+        }
     }
 
     return (
@@ -309,7 +310,7 @@ const FocusTimer = () => {
                         <Slider
                             style={styles.slider}
                             minimumValue={1}
-                            maximumValue={120} // Extended to 2 hours
+                            maximumValue={120}
                             step={1}
                             value={selectedTime}
                             onValueChange={handleTimeChange}
@@ -320,8 +321,7 @@ const FocusTimer = () => {
                     </View>
                 )}
 
-
-                {/* Token counter (visible when timer is running) - Using the same style as in playground */}
+                {/* Token counter (visible when timer is running) */}
                 {isRunning && (
                     <View style={styles.tokenContainer}>
                         <View style={styles.totalTokensContainer}>
@@ -358,7 +358,6 @@ const FocusTimer = () => {
                     </View>
                 )}
             </View>
-
         </InAppLayout>
     );
 };
@@ -380,7 +379,7 @@ const styles = StyleSheet.create({
     petBackgroundContainer: {
         position: 'relative',
         width: '100%',
-        height: 600, // Adjust as needed
+        height: 600,
         borderRadius: 20,
         overflow: 'hidden',
         marginBottom: 20,
@@ -420,7 +419,6 @@ const styles = StyleSheet.create({
         width: 200,
         height: 200,
         borderRadius: 100,
-        // backgroundColor: 'white',
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -467,7 +465,6 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: 'bold',
     },
-// In your StyleSheet
     sliderContainer: {
         backgroundColor: '#fafcff',
         borderRadius: 15,
@@ -491,9 +488,6 @@ const styles = StyleSheet.create({
         width: '100%',
         height: 40,
     },
-
-
-    // Token UI styles copied from userConnection.js
     tokenContainer: {
         backgroundColor: '#fafcff',
         borderRadius: 15,

@@ -1,5 +1,3 @@
-// context/PetContext.js
-
 import { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -15,6 +13,7 @@ export const PET_TYPES = ['corgi', 'pomeranian', 'pug'];
 // Provider component to wrap your app and make pet data available
 export const PetProvider = ({ children }) => {
     const [petData, setPetData] = useState({
+        hasPet: false, // New field to track if user has a pet
         selectedPet: null, // Will store 0 (corgi), 1 (pomeranian), or 2 (pug)
         petName: '',
         isConfirmed: false,
@@ -49,8 +48,27 @@ export const PetProvider = ({ children }) => {
         }
     };
 
+    // Convenience method to set whether user has a pet
+    const setHasPet = async (hasPet) => {
+        const updatedData = { ...petData, hasPet };
+        // If user doesn't have a pet, reset other pet-related fields
+        if (!hasPet) {
+            updatedData.selectedPet = null;
+            updatedData.petName = '';
+            updatedData.isConfirmed = false;
+        }
+        await updatePetData(updatedData);
+    };
+
     return (
-        <PetContext.Provider value={{ petData, setPetData: updatePetData, isLoading }}>
+        <PetContext.Provider
+            value={{
+                petData,
+                setPetData: updatePetData,
+                setHasPet,
+                isLoading
+            }}
+        >
             {children}
         </PetContext.Provider>
     );

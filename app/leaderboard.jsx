@@ -151,35 +151,43 @@ export default function LeaderboardScreen() {
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
                     renderItem={({ item, index }) => {
-                        const petType = PET_TYPES[item.petSelection] || 'corgi';
-                        const petImg = PET_IMAGES[petType] || PET_IMAGES['corgi'];
                         const isCurrentUser = user && (item.userId === user.id || item.id === user.id);
+
                         return (
                             <TouchableOpacity
-                                style={[
-                                    styles.userCard,
-                                    isCurrentUser && { borderColor: '#eb7d42', borderWidth: 2 }
-                                ]}
-                                onPress={() => router.push({ pathname: '/otherUsersProfile', params: { userId: item.userId || item.id } })}
-                            >
+                                style={[styles.userCard, isCurrentUser && { borderColor: '#505a98', borderWidth: 2 }]}
+                                onPress={() =>
+                                    router.push({ pathname: '/otherUsersProfile', params: { userId: item.userId || item.id } })}>
                                 <View style={styles.rankCircle}>
                                     <Text style={styles.rankText}>{index + 1}</Text>
                                 </View>
-                                <Image
-                                    source={petImg}
-                                    style={styles.avatar}
-                                />
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.petName}>{item.petName || 'No Pet Name'}</Text>
+
+                                {item.hasPet === false ? (
+                                    <View style={[styles.avatar, { backgroundColor: '#CCCCCC' }]} />
+                                ) : (
+                                    <Image
+                                        source={PET_IMAGES[PET_TYPES[item.petSelection] || 'corgi']}
+                                        style={styles.avatar}
+                                    />
+                                )}
+
+                                <View>
+                                    <Text style={styles.petName}>
+                                        {item.hasPet === false ? "No Pet" : (item.petName || 'No Pet Name')}
+                                    </Text>
                                     <Text style={styles.userName}>Owner: {item.displayName || 'Unknown'}</Text>
                                 </View>
-                                <View style={styles.tokenContainer}>
-                                    <Text style={styles.tokenText}>{item.tokens}</Text>
-                                    <FontAwesome5 name="paw" size={16} color="#505a98" />
+
+                                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                                    <View style={styles.tokenContainer}>
+                                        <Text style={styles.tokenText}>{item.tokens}</Text>
+                                        <FontAwesome5 name="coins" size={16} color="#FFD700" />
+                                    </View>
                                 </View>
                             </TouchableOpacity>
                         );
                     }}
+
                     contentContainerStyle={{ paddingBottom: 20 }}
                 />
             </InAppLayout>

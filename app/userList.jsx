@@ -29,6 +29,7 @@ import Spacer from "../components/Spacer";
 import Corgi from "../components/corgi_jumping";
 import Pom from "../components/pom_animated";
 import Pug from "../components/pug_animated";
+import NoPet from "../components/transparent";
 import { SignOutButtonSmall } from "../components/SignOutButtonSmall";
 import { useTokens } from "../contexts/TokenContext";
 
@@ -54,7 +55,8 @@ const PetLayerDisplay = ({ users, currentUser }) => {
             userId: currentUser.id,
             petSelection: petData.selectedPet,
             petName: petData.petName,
-            isCurrentUser: true
+            isCurrentUser: true,
+            hasPet: petData.hasPet
         });
 
         // Add other users, ensuring no duplicates
@@ -71,7 +73,13 @@ const PetLayerDisplay = ({ users, currentUser }) => {
     }, [users, currentUser, petData]);
 
     // Render the correct pet component based on selection
-    const getPetComponent = (petType) => {
+    const getPetComponent = (petType, hasPet) => {
+        // If user doesn't have a pet, return the alternative animation
+        if (hasPet === false) {
+            return NoPet;
+        }
+
+        // Otherwise return the appropriate pet animation
         switch (petType) {
             case 0: return Corgi;
             case 1: return Pom;
@@ -79,6 +87,7 @@ const PetLayerDisplay = ({ users, currentUser }) => {
             default: return Corgi;
         }
     };
+
 
     return (
         <ImageBackground
@@ -88,7 +97,7 @@ const PetLayerDisplay = ({ users, currentUser }) => {
         >
             <View style={styles.petLayerContainer}>
                 {visiblePets.map((pet, index) => {
-                    const PetComponent = getPetComponent(pet.petSelection);
+                    const PetComponent = getPetComponent(pet.petSelection, pet.hasPet);
 
                     // Calculate offsets - slight horizontal and vertical variations
                     const horizontalOffset = index * 40; // 15 pixels right for each pet
@@ -301,23 +310,28 @@ export default function UserConnectionScreen() {
                             renderItem={({ item }) => (
                                 <View style={styles.userCard}>
                                     <View style={styles.userInfo}>
-                                        <Image
-                                            source={PET_IMAGES[PET_TYPES[item.petSelection]]}
-                                            style={styles.avatar}
-                                        />
+                                        {item.hasPet === false ? (
+                                            <View style={[styles.avatar, { backgroundColor: '#CCCCCC' }]} />
+                                        ) : (
+                                            <Image
+                                                source={PET_IMAGES[PET_TYPES[item.petSelection]]}
+                                                style={styles.avatar}
+                                            />
+                                        )}
                                         <View>
-                                            <Text style={styles.petName}>{item.petName}</Text>
-                                            <Text style={styles.userName}>
-                                                Owner: {item.displayName}
+                                            <Text style={styles.petName}>
+                                                {item.hasPet === false ? "No Pet" : item.petName}
                                             </Text>
+                                            <Text style={styles.userName}>Owner: {item.displayName}</Text>
                                             <View style={styles.statusContainer}>
-                                                <View style={[styles.statusIndicator, { backgroundColor: 'green' }]} />
+                                                <View style={[styles.statusIndicator, { backgroundColor: '#4CAF50' }]} />
                                                 <Text style={styles.statusText}>Online</Text>
                                             </View>
                                         </View>
                                     </View>
                                 </View>
                             )}
+
                             refreshControl={
                                 <RefreshControl
                                     refreshing={refreshing}

@@ -4,15 +4,17 @@ import {
     Text,
     View,
     ImageBackground,
-    ActivityIndicator, TouchableOpacity
+    ActivityIndicator,
+    TouchableOpacity
 } from 'react-native';
-import {router, useLocalSearchParams} from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import InAppLayout from "../components/InAppLayout";
 import Corgi from "../components/corgi_jumping";
 import Pom from "../components/pom_animated";
 import Pug from "../components/pug_animated";
+import NoPetAnimated from "../components/nopet_animated";
 import { FontAwesome5 } from '@expo/vector-icons';
 import Spacer from "../components/Spacer";
 
@@ -29,7 +31,7 @@ const backgroundImages = {
     // Add more as needed
 };
 
-const PetDisplay = ({ petType, backgroundData }) => {
+const PetDisplay = ({ petType, backgroundData, hasPet }) => {
     // Get the background image from the ID
     let backgroundImage = null;
 
@@ -45,6 +47,27 @@ const PetDisplay = ({ petType, backgroundData }) => {
         } catch (error) {
             console.error('Error parsing background data:', error);
         }
+    }
+
+    // If user doesn't have a pet, show NoPetAnimated
+    if (!hasPet) {
+        return (
+            <View style={styles.petBackground}>
+                {backgroundImage ? (
+                    <ImageBackground
+                        source={backgroundImage}
+                        style={styles.backgroundImage}
+                        resizeMode="cover"
+                    >
+                        <NoPetAnimated />
+                    </ImageBackground>
+                ) : (
+                    <View style={[styles.backgroundImage, { backgroundColor: '#f0f0f0' }]}>
+                        <NoPetAnimated />
+                    </View>
+                )}
+            </View>
+        );
     }
 
     // Render pet with background image
@@ -156,7 +179,7 @@ export default function UserProfile() {
                     <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                         <FontAwesome5 name="arrow-left" size={20} color="#555" />
                     </TouchableOpacity>
-                    <Text style={styles.headerTitle}>User Profile</Text>
+                    <Text style={styles.headerTitle}>User Profiles</Text>
                     <Spacer width={15}/>
                 </View>
                 <Spacer height={100}/>
@@ -175,6 +198,7 @@ export default function UserProfile() {
                         <PetDisplay
                             petType={userData.petSelection || 0}
                             backgroundData={backgroundData}
+                            hasPet={userData.hasPet !== undefined ? userData.hasPet : true}
                         />
                     </View>
 
@@ -209,9 +233,17 @@ const styles = StyleSheet.create({
         color: '#666',
     },
     header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+    },
+    backButton: {
+        padding: 8,
+    },
+    headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        textAlign: 'center',
         color: '#343a40',
     },
     petContainer: {
@@ -292,16 +324,5 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: '#333',
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#343a40',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 20,
     },
 });

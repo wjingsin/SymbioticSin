@@ -1,19 +1,24 @@
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Alert, Image, ImageBackground } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Alert, Image, ImageBackground, ScrollView } from 'react-native';
 import React, { useState, useEffect } from 'react';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { useTokens } from "../contexts/TokenContext";
 import InAppLayout from "../components/InAppLayout";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { router } from 'expo-router';
+import { router, Link } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import { usePetData, PET_TYPES } from "../contexts/PetContext";
 
 // Import background images
-// Replace these with actual imports from your assets folder
 import background1 from '../assets/living room.png';
 import background2 from '../assets/wreck_it_ralph_880.0.1491200032.png';
-import background3 from '../assets/starry_night.png'
+import background3 from '../assets/starry_night.png';
+
+// Import pet images
+import corgiImage from '../assets/corgi1.png';
+import pomImage from '../assets/pom2.png';
+import pugImage from '../assets/pug1.png';
 
 const backgroundOptions = [
     {
@@ -45,39 +50,68 @@ const backgroundOptions = [
     },
 ];
 
+// Add pet options
+const petOptions = [
+    {
+        id: 'pet',
+        name: 'Adopt a Pet',
+        thumbnailColor: '#ffd3b6',
+        price: 1000,
+        description: 'Adopt a pet companion',
+        imageUri: corgiImage
+    }
+];
+
 const BackgroundItem = ({ item, onPurchase, purchasedItems }) => {
     const isPurchased = purchasedItems.includes(item.id);
-
     return (
         <View style={[styles.itemContainer, { backgroundColor: item.thumbnailColor + '40' }]}>
             <View style={styles.itemPreview}>
-                <Image
-                    source={item.imageUri}
-                    style={styles.backgroundPreview}
-                    resizeMode="cover"
-                />
+                <Image source={item.imageUri} style={styles.backgroundPreview} />
             </View>
             <View style={styles.itemInfo}>
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDescription}>{item.description}</Text>
-
                 <View style={styles.priceContainer}>
-                    <FontAwesome5 name="paw" size={16} color="#28558c" />
+                    <FontAwesome5 name="coins" size={14} color="#FFD700" />
                     <Text style={styles.priceText}>{item.price}</Text>
                 </View>
             </View>
-
             <TouchableOpacity
-                style={[
-                    styles.purchaseButton,
-                    isPurchased && styles.applyButton
-                ]}
-                onPress={() => onPurchase(item)}
-            >
+                style={[styles.purchaseButton, isPurchased && styles.applyButton]}
+                onPress={() => onPurchase(item)}>
                 <Text style={styles.buttonText}>
                     {isPurchased ? 'Apply' : 'Purchase'}
                 </Text>
             </TouchableOpacity>
+        </View>
+    );
+};
+
+// Updated PetItem component using Link for navigation
+const PetItem = ({ item, hasPet }) => {
+    return (
+        <View style={[styles.itemContainer, { backgroundColor: item.thumbnailColor + '40' }]}>
+            <View style={styles.itemPreview}>
+                <Image source={item.imageUri} style={styles.backgroundPreview} />
+            </View>
+            <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemDescription}>{item.description}</Text>
+                <View style={styles.priceContainer}>
+                    <FontAwesome5 name="coins" size={14} color="#FFD700" />
+                    <Text style={styles.priceText}>{item.price}</Text>
+                </View>
+            </View>
+            <Link href="/buyPet" asChild>
+                <TouchableOpacity
+                    style={styles.purchaseButton}
+                    disabled={hasPet}>
+                    <Text style={styles.buttonText}>
+                        {hasPet ? 'Owned' : 'Adopt'}
+                    </Text>
+                </TouchableOpacity>
+            </Link>
         </View>
     );
 };
@@ -87,6 +121,7 @@ const Shop = () => {
     const [purchasedItems, setPurchasedItems] = useState([]);
     const [selectedBackground, setSelectedBackground] = useState(null);
     const { user } = useUser();
+    const { petData, setPetData } = usePetData();
 
     // Load purchased items and selected background on mount
     useEffect(() => {
@@ -96,7 +131,6 @@ const Shop = () => {
                 if (savedPurchases) {
                     setPurchasedItems(JSON.parse(savedPurchases));
                 }
-
                 const savedBackground = await AsyncStorage.getItem('selectedBackground');
                 if (savedBackground) {
                     setSelectedBackground(JSON.parse(savedBackground));
@@ -105,7 +139,6 @@ const Shop = () => {
                 console.error('Failed to load data from AsyncStorage:', error);
             }
         };
-
         loadData();
     }, []);
 
@@ -118,12 +151,10 @@ const Shop = () => {
                 const backgroundData = {
                     id: item.id,
                     name: item.name,
-                    imagePath: item.id  // We'll use the id to look up the image in Home.jsx
+                    imagePath: item.id // We'll use the id to look up the image in Home.jsx
                 };
-
                 await AsyncStorage.setItem('selectedBackground', JSON.stringify(backgroundData));
                 setSelectedBackground(backgroundData);
-
                 // Update background in Firebase
                 if (user && user.id) {
                     const userRef = doc(db, 'users', user.id);
@@ -131,9 +162,7 @@ const Shop = () => {
                         backgroundData: backgroundData
                     });
                 }
-
                 Alert.alert('Success', `${item.name} background applied!`);
-
                 // Return to home screen to see changes
                 setTimeout(() => {
                     router.replace('/home');
@@ -150,22 +179,18 @@ const Shop = () => {
             try {
                 // Deduct tokens
                 minusPoint(item.price);
-
                 // Add to purchased items
                 const newPurchasedItems = [...purchasedItems, item.id];
                 setPurchasedItems(newPurchasedItems);
                 await AsyncStorage.setItem('purchasedBackgrounds', JSON.stringify(newPurchasedItems));
-
                 // Apply the background
                 const backgroundData = {
                     id: item.id,
                     name: item.name,
-                    imagePath: item.id  // We'll use the id to look up the image in Home.jsx
+                    imagePath: item.id // We'll use the id to look up the image in Home.jsx
                 };
-
                 await AsyncStorage.setItem('selectedBackground', JSON.stringify(backgroundData));
                 setSelectedBackground(backgroundData);
-
                 // Update background and purchased items in Firebase
                 if (user && user.id) {
                     const userRef = doc(db, 'users', user.id);
@@ -174,9 +199,7 @@ const Shop = () => {
                         purchasedBackgrounds: newPurchasedItems
                     });
                 }
-
                 Alert.alert('Success', `${item.name} background purchased and applied!`);
-
                 // Return to home screen to see changes
                 setTimeout(() => {
                     router.replace('/home');
@@ -191,41 +214,56 @@ const Shop = () => {
     };
 
     return (
-        <InAppLayout>
-            <View style={styles.container}>
-                <View style={styles.header}>
-                    <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-                        <FontAwesome5 name="arrow-left" size={20} color="#555" />
-                    </TouchableOpacity>
-                    <Text style={styles.headerTitle}>Background Shop</Text>
-                    <View style={styles.tokenContainer}>
-                        <FontAwesome5 name="paw" size={16} color="#538ed5" />
-                        <Text style={styles.tokenText}>{points}</Text>
-                    </View>
+        <View style={styles.container}>
+
+            <View style={styles.header}>
+                <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+                    <FontAwesome5 name="arrow-left" size={24} color="#343a40" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Shop</Text>
+                <View style={styles.tokenContainer}>
+                    <FontAwesome5 name="coins" size={16} color="#FFD700" />
+                    <Text style={styles.tokenText}>{points}</Text>
                 </View>
-
-                <Text style={styles.subtitle}>Customize your pet's home</Text>
-
-                <FlatList
-                    data={backgroundOptions}
-                    renderItem={({ item }) => (
-                        <BackgroundItem
-                            item={item}
-                            onPurchase={handlePurchase}
-                            purchasedItems={purchasedItems}
-                        />
-                    )}
-                    keyExtractor={item => item.id}
-                    contentContainerStyle={styles.listContainer}
-                />
             </View>
-        </InAppLayout>
+            <ScrollView>
+            {/* Pet Section */}
+            <Text style={styles.sectionTitle}>Adopt a Pet</Text>
+            <Text style={styles.subtitle}>Get a furry companion</Text>
+            {petOptions.map(item => (
+                <PetItem
+                    key={item.id}
+                    item={item}
+                    hasPet={petData.hasPet}
+                />
+            ))}
+
+            {/* Background Section */}
+            <Text style={styles.sectionTitle}>Backgrounds</Text>
+            <Text style={styles.subtitle}>Customize your pet's home</Text>
+            <FlatList
+                data={backgroundOptions}
+                renderItem={({ item }) => (
+                    <BackgroundItem
+                        item={item}
+                        onPurchase={handlePurchase}
+                        purchasedItems={purchasedItems}
+                    />
+                )}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.listContainer}
+                scrollEnabled={false} // Disable scrolling since we're in a ScrollView
+            />
+            </ScrollView>
+        </View>
     );
 };
 
 export default function ShopWrapper() {
     return (
-        <Shop />
+        <InAppLayout>
+            <Shop />
+        </InAppLayout>
     );
 }
 
@@ -265,11 +303,18 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#538ed5',
     },
+    sectionTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#343a40',
+        marginTop: 20,
+        marginBottom: 5,
+    },
     subtitle: {
         fontSize: 16,
         color: '#666',
         marginBottom: 20,
-        textAlign: 'center',
+        textAlign: 'left',
     },
     listContainer: {
         paddingBottom: 20,
@@ -327,6 +372,9 @@ const styles = StyleSheet.create({
     },
     applyButton: {
         backgroundColor: '#4BB543',
+    },
+    disabledButton: {
+        backgroundColor: '#888888',
     },
     buttonText: {
         color: 'white',

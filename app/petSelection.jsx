@@ -103,10 +103,9 @@ export default function PetSelectionScreen() {
 
         if (hasError) return;
 
-        // Everything is valid, proceed with saving
         setIsSaving(true);
         try {
-            // First update user profile if signed in
+            // Update user profile if signed in
             if (isSignedIn && user) {
                 await user.update({
                     firstName: firstName.trim(),
@@ -114,20 +113,22 @@ export default function PetSelectionScreen() {
                 });
             }
 
-            // Then save pet selection
+            // Save pet selection and set hasPet to true in PetContext
             await setPetData({
                 selectedPet: selectedIndex,
                 petName: petName.trim(),
                 isConfirmed: true,
+                hasPet: true, // <-- Set hasPet true here
             });
 
-            // --- UPDATE FIRESTORE WITH PET INFO ---
+            // Update Firestore with pet info and hasPet true
             if (isSignedIn && user) {
                 try {
                     const userRef = doc(db, 'users', user.id);
                     await updateDoc(userRef, {
                         petSelection: selectedIndex,
                         petName: petName.trim(),
+                        hasPet: true, // <-- Set hasPet true in Firebase
                     });
                 } catch (error) {
                     console.error('Failed to update pet info in Firestore:', error);
@@ -145,6 +146,7 @@ export default function PetSelectionScreen() {
             setIsSaving(false);
         }
     };
+
 
     // Loading state for both pet data and user auth
     if (isLoading || !isLoaded) {

@@ -8,6 +8,7 @@ import Pom from "../components/pom_animated"
 import PomJump from "../components/pom_animated"
 import Pug from "../components/pug_animated"
 import PugJump from "../components/pug_animated"
+import NoPetAnimated from "../components/nopet_animated"
 import InAppLayout from "../components/InAppLayout"
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import Spacer from "../components/Spacer";
@@ -35,7 +36,10 @@ const PetStats = () => {
     const [energy, setEnergy] = useState(100)
     const [health, setHealth] = useState(100)
     const [loaded, setLoaded] = useState(false)
+    const [isPetActive, setIsPetActive] = useState(true)
     const { points } = usePoints()
+    const { petData, setPetData } = usePetData()
+    const { user, isLoaded, isSignedIn } = useUser();
 
     useEffect(() => {
         const loadStats = async () => {
@@ -46,6 +50,11 @@ const PetStats = () => {
                     setHappiness(savedHappiness)
                     setEnergy(savedEnergy)
                     setHealth(savedHealth)
+
+                    // Check if any stat is 0 and set isPetActive accordingly
+                    if (savedHappiness === 0 || savedEnergy === 0 || savedHealth === 0) {
+                        setIsPetActive(false)
+                    }
                 }
                 setLoaded(true)
             } catch (error) {
@@ -69,16 +78,46 @@ const PetStats = () => {
     }, [happiness, energy, health, loaded])
 
     useEffect(() => {
-        if (!loaded) return
+        if (!loaded || !isPetActive) return
         const interval = setInterval(() => {
             setHappiness(prev => Math.max(0, prev - 0.1))
             setEnergy(prev => Math.max(0, prev - 0.1))
             setHealth(prev => Math.max(0, prev - 0.1))
         }, 1000)
         return () => clearInterval(interval)
-    }, [loaded])
+    }, [loaded, isPetActive])
+
+    // Check if any stat reaches 0 and set isPetActive to false
+    useEffect(() => {
+        if (loaded) {
+            const shouldUpdatePet = (happiness === 0 || energy === 0 || health === 0) && petData.hasPet;
+
+            if (shouldUpdatePet) {
+                // Update local state
+                setPetData({
+                    ...petData,
+                    hasPet: false
+                });
+
+                // Update in Firebase
+                if (isLoaded && isSignedIn && user) {
+                    try {
+                        const userRef = doc(db, 'users', user.id);
+                        updateDoc(userRef, {
+                            hasPet: false
+                        });
+                    } catch (error) {
+                        console.error('Failed to update hasPet status in Firestore:', error);
+                    }
+                }
+            }
+        }
+    }, [happiness, energy, health, loaded, petData, setPetData, isLoaded, isSignedIn, user]);
+
 
     const increaseStats = () => {
+        if (!isPetActive) return;
+
         setHappiness(prev => Math.min(100, prev + 5))
         setEnergy(prev => Math.min(100, prev + 3))
         setHealth(prev => Math.min(100, prev + 2))
@@ -86,17 +125,21 @@ const PetStats = () => {
 
     const StatBar = ({ label, value, maxValue, color }) => {
         const percentage = (value / maxValue) * 100
+        const barColor = isPetActive ? color : "#cccccc"
+
         return (
             <View style={styles.statContainer}>
                 <View style={styles.statLabelContainer}>
-                    <Text style={styles.statLabel}>{label}</Text>
-                    <Text style={styles.statValue}>{Math.round(value)}/{maxValue}</Text>
+                    <Text style={[styles.statLabel, !isPetActive && {color: '#aaaaaa'}]}>{label}</Text>
+                    <Text style={[styles.statValue, !isPetActive && {color: '#aaaaaa'}]}>
+                        {Math.round(value)}/{maxValue}
+                    </Text>
                 </View>
                 <View style={styles.progressBarBackground}>
                     <View
                         style={[
                             styles.progressBarFill,
-                            { width: `${percentage}%`, backgroundColor: color }
+                            { width: `${percentage}%`, backgroundColor: barColor }
                         ]}
                     />
                 </View>
@@ -109,6 +152,7 @@ const PetStats = () => {
         energy,
         health,
         increaseStats,
+        isPetActive,
         StatBars: () => (
             <View style={styles.statsContainer}>
                 <StatBar label="Happiness" value={happiness} maxValue={100} color="#FF9966" />
@@ -119,7 +163,9 @@ const PetStats = () => {
     }
 }
 
-const PetDisplay = ({ petType, backgroundData, happiness, energy }) => {
+const PetDisplay = ({ petType, backgroundData, happiness, energy, isPetActive }) => {
+    const { petData } = usePetData();
+
     let backgroundImage = null;
     if (backgroundData) {
         try {
@@ -134,6 +180,26 @@ const PetDisplay = ({ petType, backgroundData, happiness, energy }) => {
         }
     }
 
+    // If hasPet is false or pet is inactive, show NoPetAnimated
+    if (!petData.hasPet || !isPetActive) {
+        return (
+            <View style={styles.petBackground}>
+                {backgroundImage ? (
+                    <ImageBackground
+                        source={backgroundImage}
+                        style={styles.backgroundImage}
+                        resizeMode="cover"
+                    >
+                        <NoPetAnimated />
+                    </ImageBackground>
+                ) : (
+                    <View style={[styles.backgroundImage, { backgroundColor: '#f0f0f0' }]}>
+                        <NoPetAnimated />
+                    </View>
+                )}
+            </View>
+        );
+    }
 
     const isJumping = happiness > 70 && energy > 70;
     let PetComponent;
@@ -174,7 +240,7 @@ const Home = () => {
     const { points, minusPoint } = usePoints()
     const { points: tokens } = useTokens()
     const petStatsManager = PetStats()
-    const { StatBars, increaseStats, happiness, energy } = petStatsManager
+    const { StatBars, increaseStats, happiness, energy, isPetActive } = petStatsManager
     const { petData, isLoading } = usePetData()
     const [backgroundData, setBackgroundData] = useState(null)
     const { user, isLoaded, isSignedIn } = useUser();
@@ -224,7 +290,7 @@ const Home = () => {
     ]);
 
     const feedPet = () => {
-        if (points > 0) {
+        if (points > 0 && isPetActive) {
             minusPoint()
             increaseStats()
         }
@@ -250,21 +316,31 @@ const Home = () => {
                         backgroundData={backgroundData}
                         happiness={happiness}
                         energy={energy}
+                        isPetActive={isPetActive}
                     />
                 </View>
                 <StatBars />
                 <View style={styles.feedContainer}>
                     <View style={styles.pointsIndicator}>
-                        <FontAwesome5 name="bone" size={16} color="#eb7d42" />
-                        <Text style={styles.pointsText}>{points}</Text>
+                        <FontAwesome5
+                            name="bone"
+                            size={16}
+                            color={isPetActive ? "#eb7d42" : "#cccccc"}
+                        />
+                        <Text style={[
+                            styles.pointsText,
+                            !isPetActive && {color: "#cccccc"}
+                        ]}>
+                            {points}
+                        </Text>
                     </View>
                     <TouchableOpacity
                         style={[
                             styles.treatButton,
-                            points <= 0 && styles.treatButtonDisabled
+                            (!isPetActive || points <= 0) && styles.treatButtonDisabled
                         ]}
                         onPress={feedPet}
-                        disabled={points <= 0}
+                        disabled={!isPetActive || points <= 0}
                     >
                         <FontAwesome5
                             name="bone"

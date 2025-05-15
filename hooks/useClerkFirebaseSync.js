@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
-import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { usePetData } from '../contexts/PetContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,6 +8,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function useClerkFirebaseSync() {
     const { user, isLoaded, isSignedIn } = useUser();
     const petContext = usePetData();
+
+    // Function to update hasPet status in Firebase
+    const updateHasPetStatus = useCallback(async (hasPetValue) => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                const userRef = doc(db, 'users', user.id);
+                await updateDoc(userRef, {
+                    hasPet: hasPetValue,
+                    updatedAt: serverTimestamp()
+                });
+
+                // Also update in context if available
+                if (petContext && petContext.setPetData) {
+                    petContext.setPetData({
+                        ...petContext.petData,
+                        hasPet: hasPetValue
+                    });
+                }
+            } catch (error) {
+                console.error('Error updating hasPet status:', error);
+            }
+        }
+    }, [isLoaded, isSignedIn, user, petContext]);
 
     useEffect(() => {
         const syncUserToFirebase = async () => {
@@ -17,17 +40,20 @@ export default function useClerkFirebaseSync() {
                 // Get pet data from context
                 let petSelection = 0;
                 let petName = 'Pet';
+                let hasPet = true; // Default value
 
-                if (petContext && petContext.petData && petContext.petData.isConfirmed) {
+                if (petContext && petContext.petData) {
                     petSelection = petContext.petData.selectedPet;
                     petName = petContext.petData.petName;
+                    hasPet = petContext.petData.hasPet !== undefined ? petContext.petData.hasPet : true;
                 } else {
                     try {
-                        const storedPetData = await AsyncStorage.getItem('petData');
+                        const storedPetData = await AsyncStorage.getItem('@pet_data');
                         if (storedPetData) {
                             const parsedPetData = JSON.parse(storedPetData);
                             petSelection = parsedPetData.selectedPet || 0;
                             petName = parsedPetData.petName || 'Pet';
+                            hasPet = parsedPetData.hasPet !== undefined ? parsedPetData.hasPet : true;
                         }
                     } catch (error) {
                         console.error('Error reading pet data from AsyncStorage:', error);
@@ -73,6 +99,7 @@ export default function useClerkFirebaseSync() {
                     updatedAt: serverTimestamp(),
                     petSelection,
                     petName,
+                    hasPet, // Added hasPet boolean to the data
                 };
 
                 // Include background data if available
@@ -120,4 +147,7 @@ export default function useClerkFirebaseSync() {
 
         syncBackgroundChanges();
     }, [isLoaded, isSignedIn, user]);
+
+    // Return the update function so it can be used by components
+    return { updateHasPetStatus };
 }

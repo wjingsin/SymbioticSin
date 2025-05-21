@@ -52,7 +52,7 @@ const RootLayout = ({ children }) => {
                 <Link href="/userList" asChild>
                     <Pressable style={styles.footerItem}>
                         <MaterialIcons
-                            name="grass"
+                            name="groups"
                             size={26}
                             color={pathname === "/userList" ? activeColor : inactiveColor}
                         />
@@ -62,7 +62,7 @@ const RootLayout = ({ children }) => {
                 <Link href="/leaderboard" asChild>
                     <Pressable style={styles.footerItem}>
                         <MaterialIcons
-                            name="leaderboard"
+                            name="group-work"
                             size={26}
                             color={pathname === "/leaderboard" ? activeColor : inactiveColor}
                         />

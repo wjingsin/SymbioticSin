@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useUser } from '@clerk/clerk-expo';
-import { doc, setDoc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { usePetData } from '../contexts/PetContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,6 +31,226 @@ export default function useClerkFirebaseSync() {
             }
         }
     }, [isLoaded, isSignedIn, user, petContext]);
+
+    // Function to create a study group
+    const createStudyGroup = useCallback(async (groupName) => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                // Create a new study group document
+                const groupsRef = collection(db, 'studyGroups');
+                const newGroupRef = doc(groupsRef);
+
+                await setDoc(newGroupRef, {
+                    name: groupName,
+                    createdBy: user.id,
+                    creatorName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous',
+                    members: [user.id],
+                    memberNames: [{
+                        id: user.id,
+                        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous'
+                    }],
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+
+                return newGroupRef.id;
+            } catch (error) {
+                console.error('Error creating study group:', error);
+                throw error;
+            }
+        }
+    }, [isLoaded, isSignedIn, user]);
+
+    // Function to invite a user to a study group
+    const inviteToStudyGroup = useCallback(async (groupId, inviteeId) => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                // Get group info
+                const groupRef = doc(db, 'studyGroups', groupId);
+                const groupSnap = await getDoc(groupRef);
+
+                if (!groupSnap.exists()) {
+                    throw new Error('Study group not found');
+                }
+
+                const groupData = groupSnap.data();
+
+                // Check if user is already a member
+                if (groupData.members.includes(inviteeId)) {
+                    throw new Error('User is already a member of this group');
+                }
+
+                // Get invitee info
+                const inviteeRef = doc(db, 'users', inviteeId);
+                const inviteeSnap = await getDoc(inviteeRef);
+
+                if (!inviteeSnap.exists()) {
+                    throw new Error('Invitee not found');
+                }
+
+                // Create invitation
+                const invitesRef = collection(db, 'groupInvites');
+                const newInviteRef = doc(invitesRef);
+
+                await setDoc(newInviteRef, {
+                    groupId,
+                    groupName: groupData.name,
+                    inviterId: user.id,
+                    inviterName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous',
+                    inviteeId,
+                    inviteeName: inviteeSnap.data().displayName || 'Unknown',
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                });
+
+                return newInviteRef.id;
+            } catch (error) {
+                console.error('Error inviting to study group:', error);
+                throw error;
+            }
+        }
+    }, [isLoaded, isSignedIn, user]);
+
+    // Function to accept a study group invitation
+    const acceptStudyGroupInvite = useCallback(async (inviteId) => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                // Get invitation
+                const inviteRef = doc(db, 'groupInvites', inviteId);
+                const inviteSnap = await getDoc(inviteRef);
+
+                if (!inviteSnap.exists()) {
+                    throw new Error('Invitation not found');
+                }
+
+                const inviteData = inviteSnap.data();
+
+                // Check if this invitation is for the current user
+                if (inviteData.inviteeId !== user.id) {
+                    throw new Error('This invitation is not for you');
+                }
+
+                // Update invitation status
+                await updateDoc(inviteRef, {
+                    status: 'accepted',
+                    respondedAt: serverTimestamp()
+                });
+
+                // Add user to group
+                const groupRef = doc(db, 'studyGroups', inviteData.groupId);
+                const groupSnap = await getDoc(groupRef);
+
+                if (!groupSnap.exists()) {
+                    throw new Error('Study group not found');
+                }
+
+                const groupData = groupSnap.data();
+                const newMembers = [...groupData.members, user.id];
+                const newMemberNames = [...(groupData.memberNames || []), {
+                    id: user.id,
+                    name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'Anonymous'
+                }];
+
+                await updateDoc(groupRef, {
+                    members: newMembers,
+                    memberNames: newMemberNames,
+                    updatedAt: serverTimestamp()
+                });
+
+                return true;
+            } catch (error) {
+                console.error('Error accepting study group invitation:', error);
+                throw error;
+            }
+        }
+    }, [isLoaded, isSignedIn, user]);
+
+    // Function to decline a study group invitation
+    const declineStudyGroupInvite = useCallback(async (inviteId) => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                // Get invitation
+                const inviteRef = doc(db, 'groupInvites', inviteId);
+                const inviteSnap = await getDoc(inviteRef);
+
+                if (!inviteSnap.exists()) {
+                    throw new Error('Invitation not found');
+                }
+
+                const inviteData = inviteSnap.data();
+
+                // Check if this invitation is for the current user
+                if (inviteData.inviteeId !== user.id) {
+                    throw new Error('This invitation is not for you');
+                }
+
+                // Update invitation status
+                await updateDoc(inviteRef, {
+                    status: 'declined',
+                    respondedAt: serverTimestamp()
+                });
+
+                return true;
+            } catch (error) {
+                console.error('Error declining study group invitation:', error);
+                throw error;
+            }
+        }
+    }, [isLoaded, isSignedIn, user]);
+
+    // Function to get user's study groups
+    const getUserStudyGroups = useCallback(async () => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                const groupsRef = collection(db, 'studyGroups');
+                const q = query(groupsRef, where('members', 'array-contains', user.id));
+                const querySnapshot = await getDocs(q);
+
+                const groups = [];
+                querySnapshot.forEach((doc) => {
+                    groups.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                return groups;
+            } catch (error) {
+                console.error('Error getting user study groups:', error);
+                throw error;
+            }
+        }
+        return [];
+    }, [isLoaded, isSignedIn, user]);
+
+    // Function to get user's pending study group invitations
+    const getStudyGroupInvites = useCallback(async () => {
+        if (isLoaded && isSignedIn && user) {
+            try {
+                const invitesRef = collection(db, 'groupInvites');
+                const q = query(
+                    invitesRef,
+                    where('inviteeId', '==', user.id),
+                    where('status', '==', 'pending')
+                );
+                const querySnapshot = await getDocs(q);
+
+                const invites = [];
+                querySnapshot.forEach((doc) => {
+                    invites.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+
+                return invites;
+            } catch (error) {
+                console.error('Error getting study group invites:', error);
+                throw error;
+            }
+        }
+        return [];
+    }, [isLoaded, isSignedIn, user]);
 
     useEffect(() => {
         const syncUserToFirebase = async () => {
@@ -100,6 +320,7 @@ export default function useClerkFirebaseSync() {
                     petSelection,
                     petName,
                     hasPet, // Added hasPet boolean to the data
+                    studyGroups: [], // Initialize empty array for study groups
                 };
 
                 // Include background data if available
@@ -139,15 +360,21 @@ export default function useClerkFirebaseSync() {
 
                 // Initial sync
                 handleBackgroundChange();
-
                 // You could set up a listener here if needed for real-time updates
-                // This would require additional implementation
             }
         };
 
         syncBackgroundChanges();
     }, [isLoaded, isSignedIn, user]);
 
-    // Return the update function so it can be used by components
-    return { updateHasPetStatus };
+    // Return all the functions so they can be used by components
+    return {
+        updateHasPetStatus,
+        createStudyGroup,
+        inviteToStudyGroup,
+        acceptStudyGroupInvite,
+        declineStudyGroupInvite,
+        getUserStudyGroups,
+        getStudyGroupInvites
+    };
 }

@@ -305,7 +305,7 @@ const Home = () => {
                     <Text style={styles.petName}>{petData.petName}</Text>
                     <Link href="/shop" asChild>
                         <TouchableOpacity style={styles.tokenIndicator}>
-                            <FontAwesome5 name="paw" size={16} color="#505a98" />
+                            <FontAwesome5 name="paw" size={16} color="#538ed5" />
                             <Text style={styles.tokenText}>{tokens}</Text>
                         </TouchableOpacity>
                     </Link>
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
     tokenText: {
         marginLeft: 6,
         fontWeight: '600',
-        color: '#505a98',
+        color: '#538ed5',
     },
     petContainer: {
         flex: 1,

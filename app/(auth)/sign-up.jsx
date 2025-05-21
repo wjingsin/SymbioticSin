@@ -36,7 +36,10 @@ export default function SignUpScreen() {
             setPendingVerification(true)
         } catch (err) {
             // console.error(JSON.stringify(err, null, 2))
-            setError('Registration failed. Please check your information and try again.')
+            const errorDetails = JSON.stringify(err, null, 2);
+
+            // Set the detailed error message to be displayed in the UI
+            setError(`Registration failed: ${err.message || 'Unknown error'}\n\nDetails: ${errorDetails}`);
         } finally {
             setLoading(false)
         }

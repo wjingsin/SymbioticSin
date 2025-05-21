@@ -20,7 +20,8 @@ import { FontAwesome5, Ionicons, MaterialCommunityIcons } from '@expo/vector-ico
 // Import Firebase services
 import {
     updateUserStatus,
-    subscribeToOnlineUsers
+    subscribeToOnlineUsers,
+    getUserStudyGroups,
 } from '../firebaseService';
 import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 import InAppLayout from "../components/InAppLayout";
@@ -140,9 +141,32 @@ export default function UserConnectionScreen() {
     const tokenPulse = useRef(new Animated.Value(1)).current;
     const tokenEarnedAnim = useRef(new Animated.Value(0)).current;
     const tokenEarnedOpacity = useRef(new Animated.Value(0)).current;
+    const [groupName, setGroupName] = useState("");
+
+
 
     // Use the hook to ensure user data is synced with Firebase
     useClerkFirebaseSync();
+    useEffect(() => {
+        const fetchGroupName = async () => {
+            if (user) {
+                try {
+                    const groups = await getUserStudyGroups(user.id);
+                    if (groups.length > 0 && groups[0]?.name) {
+                        setGroupName(groups[0].name);
+                    } else {
+                        setGroupName("No Study Group");
+                    }
+                } catch (error) {
+                    console.error("Error fetching group name:", error);
+                }
+            }
+        };
+
+        fetchGroupName();
+    }, [user]);
+
+
 
     // Handle token earning
     useEffect(() => {
@@ -277,7 +301,7 @@ export default function UserConnectionScreen() {
             <InAppLayout>
                 <View style={styles.headerContainer}>
                     <View style={styles.headerLeftSpace} />
-                    <Text style={styles.headerText}>   Playground</Text>
+                    <Text style={styles.headerText}>   {groupName}</Text>
                     <SignOutButtonSmall />
                     <Spacer width={20} />
                 </View>
@@ -295,7 +319,7 @@ export default function UserConnectionScreen() {
 
                 <View style={styles.listContainer}>
                     <View style={styles.listHeaderContainer}>
-                        <Text style={styles.listHeaderText}>List of users</Text>
+                        <Text style={styles.listHeaderText}>Study Group Members</Text>
                         <Text style={styles.onlineCount}>{onlineCount} online</Text>
                     </View>
 

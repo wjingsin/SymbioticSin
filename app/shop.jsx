@@ -73,7 +73,7 @@ const BackgroundItem = ({ item, onPurchase, purchasedItems }) => {
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDescription}>{item.description}</Text>
                 <View style={styles.priceContainer}>
-                    <FontAwesome5 name="coins" size={14} color="#FFD700" />
+                    <FontAwesome5 name="paw" size={14} color="#538ed5" />
                     <Text style={styles.priceText}>{item.price}</Text>
                 </View>
             </View>
@@ -99,7 +99,7 @@ const PetItem = ({ item, hasPet }) => {
                 <Text style={styles.itemName}>{item.name}</Text>
                 <Text style={styles.itemDescription}>{item.description}</Text>
                 <View style={styles.priceContainer}>
-                    <FontAwesome5 name="coins" size={14} color="#FFD700" />
+                    <FontAwesome5 name="paw" size={14} color="#538ed5" />
                     <Text style={styles.priceText}>{item.price}</Text>
                 </View>
             </View>
@@ -222,7 +222,7 @@ const Shop = () => {
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Shop</Text>
                 <View style={styles.tokenContainer}>
-                    <FontAwesome5 name="coins" size={16} color="#FFD700" />
+                    <FontAwesome5 name="paw" size={16} color="#538ed5" />
                     <Text style={styles.tokenText}>{points}</Text>
                 </View>
             </View>

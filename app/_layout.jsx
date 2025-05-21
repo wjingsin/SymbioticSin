@@ -4,9 +4,10 @@ import { Colors } from '../constants/Colors'
 import { StatusBar } from 'expo-status-bar'
 import ThemedView from "../components/ThemedView";
 import Spacer from "../components/Spacer";
-import {UserProvider} from "../contexts/UserContext";
 import { ClerkProvider } from '@clerk/clerk-expo'
 import { PetProvider } from '../contexts/PetContext';
+import { tokenCache } from '@clerk/clerk-expo/token-cache'
+
 
 import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 import {TokensProvider} from "../contexts/TokenContext";
@@ -16,7 +17,7 @@ const RootLayout = () => {
     const theme = Colors[colorScheme] ?? Colors.light
     const pathname = usePathname();
     return (
-        <ClerkProvider>
+        <ClerkProvider tokenCache={tokenCache}>
             <ClerkWrappedApp/>
         </ClerkProvider>
     );

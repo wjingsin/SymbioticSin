@@ -7,6 +7,7 @@ import Spacer from "../components/Spacer";
 import { ClerkProvider } from '@clerk/clerk-expo'
 import { PetProvider } from '../contexts/PetContext';
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
+import React from 'react'
 
 
 import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';

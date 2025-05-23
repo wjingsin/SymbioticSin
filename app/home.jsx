@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { FontAwesome5 } from '@expo/vector-icons'
 import { PointsProvider, usePoints } from "../contexts/PointsContext"
 import Corgi from "../components/corgi_walking"
@@ -16,9 +16,10 @@ import { usePetData, PET_TYPES } from "../contexts/PetContext"
 import { Link } from "expo-router";
 import { TokensProvider, useTokens } from "../contexts/TokenContext";
 import { useUser } from "@clerk/clerk-expo";
-import { updateUserStatus } from '../firebaseService';
+import {  updateUserPetInfo, updateUserStatus } from '../firebaseService';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
+import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 
 // Import background images
 import background1 from '../assets/living room.png';
@@ -244,6 +245,7 @@ const Home = () => {
     const { petData, isLoading } = usePetData()
     const [backgroundData, setBackgroundData] = useState(null)
     const { user, isLoaded, isSignedIn } = useUser();
+    const { isAuthenticated } = useClerkFirebaseSync();
 
     useEffect(() => {
         const loadBackground = async () => {
@@ -259,35 +261,29 @@ const Home = () => {
         loadBackground()
     }, [])
 
+    // Add a ref to prevent unnecessary updates
+    const lastPetDataRef = useRef();
+
     useEffect(() => {
         const updatePetInFirebase = async () => {
-            if (
-                isLoaded &&
-                isSignedIn &&
-                user &&
-                petData &&
-                typeof petData.selectedPet === 'number' &&
-                typeof petData.petName === 'string'
-            ) {
+            const currentPetData = `${petData?.selectedPet}-${petData?.petName}`;
+            if (lastPetDataRef.current === currentPetData) return;
+
+            if (isLoaded && isSignedIn && user && petData && isAuthenticated) {
                 try {
-                    const userRef = doc(db, 'users', user.id);
-                    await updateDoc(userRef, {
-                        petSelection: petData.selectedPet,
-                        petName: petData.petName.trim(),
+                    await updateUserPetInfo(user.id, {
+                        selectedPet: petData.selectedPet,
+                        petName: petData.petName
                     });
+                    lastPetDataRef.current = currentPetData;
                 } catch (error) {
-                    console.error('Failed to update pet info in Firestore (Home):', error);
+                    console.error('Failed to update pet info:', error);
                 }
             }
         };
         updatePetInFirebase();
-    }, [
-        isLoaded,
-        isSignedIn,
-        user,
-        petData.selectedPet,
-        petData.petName
-    ]);
+    }, [isLoaded, isSignedIn, user?.id, isAuthenticated]);
+
 
     const feedPet = () => {
         if (points > 0 && isPetActive) {
@@ -364,21 +360,42 @@ const Home = () => {
 
 export default function HomeWrapper() {
     const { user } = useUser();
+    const {
+        updateHasPetStatus,
+        isAuthenticated,
+        authError
+    } = useClerkFirebaseSync();
+
+    const [statusSet, setStatusSet] = useState(false);
+
+    // Set status to offline ONCE when entering home page
     useEffect(() => {
-        if (user) {
-            updateUserStatus(user.id, 'offline');
-        }
-    }, [user]);
+        const setOfflineStatus = async () => {
+            if (user?.id && isAuthenticated && !statusSet) {
+                try {
+                    await updateUserStatus(user.id, 'offline');
+                    setStatusSet(true);
+                    console.log('User status set to offline on home page');
+                } catch (error) {
+                    console.error('Failed to set offline status:', error);
+                }
+            }
+        };
+
+        setOfflineStatus();
+    }, [user?.id, isAuthenticated, statusSet]);
+
     return (
-        <TokensProvider>
-            <PointsProvider>
+        <PointsProvider>
+            <TokensProvider>
                 <InAppLayout>
                     <Home />
                 </InAppLayout>
-            </PointsProvider>
-        </TokensProvider>
-    )
+            </TokensProvider>
+        </PointsProvider>
+    );
 }
+
 
 const styles = StyleSheet.create({
     mainButton: {

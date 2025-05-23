@@ -36,10 +36,11 @@ export const updateUserStatus = async (userId, status) => {
 
 
 // NEW: Get all users (online and offline)
-export const getAllUsers = async () => {
+export const getAllUsers = async (limitCount = 50) => {
     try {
         const usersRef = collection(db, 'users');
-        const querySnapshot = await getDocs(usersRef);
+        const q = query(usersRef, orderBy('lastActive', 'desc'), limit(limitCount));
+        const querySnapshot = await getDocs(q);
         const users = [];
         querySnapshot.forEach((doc) => {
             users.push({ id: doc.id, ...doc.data() });
@@ -77,8 +78,10 @@ export const subscribeToOnlineUsers = (currentUserId, callback) => {
                     const q = query(
                         usersRef,
                         where('status', '==', 'online'),
+                        limit(20), // Add this limit
                         where('userId', '!=', currentUserId)
                     );
+
 
                     const unsubscribeUsers = onSnapshot(q, (querySnapshot) => {
                         const onlineUsers = [];
@@ -107,23 +110,23 @@ export const subscribeToOnlineUsers = (currentUserId, callback) => {
     }
 };
 
-
-// NEW: Real-time listener for all users (online and offline)
-export const subscribeToUserStatusChanges = (callback) => {
-    try {
-        const usersRef = collection(db, 'users');
-        return onSnapshot(usersRef, (snapshot) => {
-            const users = [];
-            snapshot.forEach((doc) => {
-                users.push({ id: doc.id, ...doc.data() });
-            });
-            callback(users);
-        });
-    } catch (error) {
-        console.error('Error subscribing to user status changes:', error);
-        throw error;
-    }
-};
+//
+// // NEW: Real-time listener for all users (online and offline)
+// export const subscribeToUserStatusChanges = (callback) => {
+//     try {
+//         const usersRef = collection(db, 'users');
+//         return onSnapshot(usersRef, (snapshot) => {
+//             const users = [];
+//             snapshot.forEach((doc) => {
+//                 users.push({ id: doc.id, ...doc.data() });
+//             });
+//             callback(users);
+//         });
+//     } catch (error) {
+//         console.error('Error subscribing to user status changes:', error);
+//         throw error;
+//     }
+// };
 
 export const createStudyGroup = async (userId, groupName) => {
     try {
@@ -412,5 +415,38 @@ export const subscribeToGroupMemberChanges = (groupId, callback) => {
     });
 };
 
+export const subscribeToOnlineUsersOnly = (callback) => {
+    try {
+        const usersRef = collection(db, 'users');
+        const q = query(
+            usersRef,
+            where('status', '==', 'online'),
+            orderBy('lastActive', 'desc'),
+            limit(20)
+        );
+        return onSnapshot(q, callback, (error) => {
+            console.error('Error in online users subscription:', error);
+            callback({ forEach: () => {} }); // Return empty result on error
+        });
+    } catch (error) {
+        console.error('Error subscribing to online users:', error);
+        throw error;
+    }
+};
+
+export const updateUserPetInfo = async (userId, petData) => {
+    try {
+        const userRef = doc(db, 'users', userId);
+        await updateDoc(userRef, {
+            petSelection: petData.selectedPet,
+            petName: petData.petName.trim(),
+            updatedAt: serverTimestamp()
+        });
+        return true;
+    } catch (error) {
+        console.error('Error updating pet info:', error);
+        throw error;
+    }
+};
 
 

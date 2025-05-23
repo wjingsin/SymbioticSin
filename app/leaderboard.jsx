@@ -14,7 +14,18 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo';
-import { getAllUsers, subscribeToUserStatusChanges, createStudyGroup, inviteToStudyGroup, getStudyGroupInvites, acceptStudyGroupInvite, declineStudyGroupInvite, getUserStudyGroups, leaveStudyGroup, subscribeToGroupMemberChanges  } from '../firebaseService';
+import { getAllUsers,
+        subscribeToUserStatusChanges,
+        createStudyGroup,
+        inviteToStudyGroup,
+        getStudyGroupInvites,
+        acceptStudyGroupInvite,
+        declineStudyGroupInvite,
+        getUserStudyGroups,
+        leaveStudyGroup,
+        subscribeToGroupMemberChanges,
+        subscribeToOnlineUsersOnly
+} from '../firebaseService';
 import InAppLayout from "../components/InAppLayout";
 import Spacer from "../components/Spacer";
 import { PET_TYPES } from "../contexts/PetContext";
@@ -22,6 +33,8 @@ import { useTokens } from '../contexts/TokenContext';
 import { doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import {FontAwesome, FontAwesome5, MaterialIcons} from "@expo/vector-icons";
+import { debounce } from 'lodash';
+
 
 // Pet images
 const PET_IMAGES = {
@@ -50,20 +63,33 @@ export default function LeaderboardScreen() {
     const [activeTab, setActiveTab] = useState('leaderboard'); // 'leaderboard', 'groups'
     const [showInvitesModal, setShowInvitesModal] = useState(false);
 
-    // Sync tokens to Firestore whenever points change
+    // ADD THESE NEW STATE VARIABLES
+    const [debouncedPoints, setDebouncedPoints] = useState(points);
+
+
+    // ADD THIS DEBOUNCE EFFECT
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedPoints(points);
+        }, 5000); // 2 second delay
+
+        return () => clearTimeout(timer);
+    }, [points]);
+
+    // REPLACE THE OLD TOKEN SYNC WITH THIS
     useEffect(() => {
         const syncTokens = async () => {
-            if (user && typeof points === 'number') {
+            if (user && typeof debouncedPoints === 'number') {
                 try {
                     const userRef = doc(db, 'users', user.id);
-                    await updateDoc(userRef, { tokens: points });
+                    await updateDoc(userRef, { tokens: debouncedPoints });
                 } catch (e) {
                     console.error('Failed to sync tokens to Firestore:', e);
                 }
             }
         };
         syncTokens();
-    }, [user, points]);
+    }, [user, debouncedPoints]); // Use debouncedPoints instead of points
 
     useEffect(() => {
         let unsubscribe;
@@ -71,11 +97,26 @@ export default function LeaderboardScreen() {
             setLoading(true);
             setError(null);
             try {
-                const allUsers = await getAllUsers();
+                // Get initial user data with limit
+                const allUsers = await getAllUsers(50); // Add limit parameter
                 setUsers(sortUsers(allUsers, user));
-                unsubscribe = subscribeToUserStatusChanges((updatedUsers) => {
-                    setUsers(sortUsers(updatedUsers, user));
-                });
+
+                const debouncedUpdateOnlineUsers = debounce((onlineUsersSnapshot) => {
+                    const onlineUsers = [];
+                    onlineUsersSnapshot.forEach((doc) => {
+                        onlineUsers.push({ id: doc.id, ...doc.data() });
+                    });
+
+                    setUsers(prevUsers => {
+                        const updatedUsers = prevUsers.map(user => {
+                            const onlineUser = onlineUsers.find(ou => ou.id === user.id);
+                            return onlineUser ? { ...user, ...onlineUser } : user;
+                        });
+                        return sortUsers(updatedUsers, user);
+                    });
+                }, 3000); // 3-second debounce
+
+                unsubscribe = subscribeToOnlineUsersOnly(debouncedUpdateOnlineUsers);
             } catch (err) {
                 setError('Failed to fetch users');
             } finally {
@@ -84,7 +125,6 @@ export default function LeaderboardScreen() {
         };
 
         fetchUsers();
-
         return () => {
             if (unsubscribe) unsubscribe();
         };
@@ -112,7 +152,7 @@ export default function LeaderboardScreen() {
         let unsubscribe;
         if (activeTab === 'groups' && studyGroups.length > 0 && studyGroups[0]?.id) {
             // Subscribe to member changes for the current group
-            unsubscribe = subscribeToGroupMemberChanges(studyGroups[0].id, (updatedMembers) => {
+            const debouncedGroupUpdate = debounce((updatedMembers) => {
                 setStudyGroups(prevGroups => {
                     if (prevGroups.length === 0) return prevGroups;
                     return [{
@@ -120,7 +160,10 @@ export default function LeaderboardScreen() {
                         members: updatedMembers
                     }];
                 });
-            });
+            }, 2000); // 2-second debounce
+
+            unsubscribe = subscribeToGroupMemberChanges(studyGroups[0].id, debouncedGroupUpdate);
+
         }
 
         return () => {
@@ -161,7 +204,7 @@ export default function LeaderboardScreen() {
     const onRefresh = async () => {
         setRefreshing(true);
         try {
-            const allUsers = await getAllUsers();
+            const allUsers = await getAllUsers(50);
             setUsers(sortUsers(allUsers, user));
             if (user) {
                 const groups = await getUserStudyGroups(user.id);
@@ -522,7 +565,7 @@ export default function LeaderboardScreen() {
                         onPress={() => setActiveTab('groups')}
                     >
                         <MaterialIcons name="groups" size={18} color={activeTab === 'groups' ? "#FF8C42" : "#777"} />
-                        <Text style={[styles.tabText, activeTab === 'groups' && styles.activeTabText]}>Your Group</Text>
+                        <Text style={[styles.tabText, activeTab === 'groups' && styles.activeTabText]}>Study Group</Text>
                     </TouchableOpacity>
                 </View>
 

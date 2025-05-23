@@ -33,6 +33,7 @@ import Pug from "../components/pug_animated";
 import NoPet from "../components/transparent";
 import { SignOutButtonSmall } from "../components/SignOutButtonSmall";
 import { useTokens } from "../contexts/TokenContext";
+import { debounce } from 'lodash';
 
 // Pet images (same as in pet-selection.js)
 const PET_IMAGES = {
@@ -165,33 +166,40 @@ export default function UserConnectionScreen() {
 
         fetchGroupName();
     }, [user]);
+// Store the current token rate in a ref to avoid stale closure
+    const tokenRateRef = useRef(1);
 
-
-
-    // Handle token earning
+// Update the ref whenever tokenRate changes
     useEffect(() => {
-        let intervalId;
-        let tokensToAdd = 0;
+        tokenRateRef.current = tokenRate;
+    }, [tokenRate]);
 
-        // Calculate token rate (1 + number of online users)
+// Handle token earning - update display rate
+    useEffect(() => {
         const newTokenRate = onlineCount + 1;
         setTokenRate(newTokenRate);
+    }, [onlineCount]);
 
-        // Set up interval to add tokens
-        intervalId = setInterval(() => {
-            // Add points and update session count
-            addPoint(newTokenRate);
-            setEarnedThisSession(prev => prev + newTokenRate);
+// Stable interval using ref to get current value
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            // ✅ FIXED: Use the ref to get current token rate
+            const currentTokenRate = tokenRateRef.current;
 
-            // Trigger animation
+            addPoint(currentTokenRate);
+            setEarnedThisSession(prev => prev + currentTokenRate);
+
+            // Trigger animations
             pulseTokenIcon();
-            showEarnedAnimation(newTokenRate);
-        }, 60000);
+            showEarnedAnimation(currentTokenRate);
+        }, 1000);
 
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
-    }, [onlineCount]);
+    }, []); // Empty dependency array but uses current values via ref
+
+
 
     // Animation functions
     const pulseTokenIcon = () => {
@@ -241,14 +249,15 @@ export default function UserConnectionScreen() {
                 await updateUserStatus(user.id, 'online');
 
                 // Subscribe to online users
-                unsubscribeOnlineUsers = subscribeToOnlineUsers(user.id, (onlineUsers) => {
+                const debouncedUpdateUsers = debounce((onlineUsers) => {
                     if (isActive) {
-                        // Filter out current user
                         const otherUsers = onlineUsers.filter(u => u.userId !== user.id);
                         setUsers(otherUsers);
                         setOnlineCount(otherUsers.length);
                     }
-                });
+                }, 3000); // 3-second debounce
+
+                unsubscribeOnlineUsers = subscribeToOnlineUsers(user.id, debouncedUpdateUsers);
 
                 if (isActive) {
                     setLoading(false);
@@ -283,7 +292,7 @@ export default function UserConnectionScreen() {
         // The subscription will update the users list automatically
         setTimeout(() => {
             setRefreshing(false);
-        }, 1000);
+        }, 5000);
     };
 
     if (loading) {

@@ -1,38 +1,24 @@
 import { Slot, Stack, usePathname, Link } from 'expo-router'
 import {StyleSheet, Text, useColorScheme, View, Pressable, TouchableOpacity} from 'react-native'
-import { Colors } from '../constants/Colors'
-import { StatusBar } from 'expo-status-bar'
-import ThemedView from "../components/ThemedView";
-import Spacer from "../components/Spacer";
-import {UserProvider} from "../contexts/UserContext";
 import { ClerkProvider } from '@clerk/clerk-expo'
 import { PetProvider } from '../contexts/PetContext';
 
 const RootLayout = () => {
-    const colorScheme = useColorScheme()
-    const theme = Colors[colorScheme] ?? Colors.light
     const pathname = usePathname();
 
     return (
         <ClerkProvider>
             <PetProvider>
-            <ThemedView style={{flex: 1}}>
+            <View style={{flex: 1}}>
                 <Slot />
-            </ThemedView>
+            </View>
             </PetProvider>
         </ClerkProvider>
     )
 }
 
 export default RootLayout
-// <Stack screenOptions={{
-//     headerSyle: {backgroundColor: '#ddd'},
-//     headerTintColor: '#333',
-// }}>
-//     <Stack.Screen name="index" options={{title: 'Home'}} />
-//     <Stack.Screen name="about" options={{title: 'About'}} />
-//     <Stack.Screen name="contact" options={{title: 'Contact'}} />
-// </Stack>
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

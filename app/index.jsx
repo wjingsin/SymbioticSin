@@ -1,23 +1,20 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, StatusBar } from 'react-native'
 import { Link } from 'expo-router'
-import Logo from '../assets/adaptive-icon.png'
+import Logo from '../assets/pugwalk1.png'
 import React from 'react'
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { SignOutButton } from '../components/SignOutButton'
-import { PointsProvider, usePoints } from "../contexts/PointsContext"
 import Spacer from "../components/Spacer"
 
 const Index = () => {
     const { user } = useUser()
-    const { points } = usePoints()
-
     return (
         <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
             <View style={styles.logoContainer}>
                 <Image source={Logo} style={styles.logo} />
-                <Text style={styles.appTitle}>Study App</Text>
+                <Text style={styles.appTitle}>Paw Pals</Text>
             </View>
 
             <Spacer height={30} />
@@ -30,11 +27,6 @@ const Index = () => {
                     <Text style={styles.emailText}>
                         {user?.emailAddresses[0].emailAddress}
                     </Text>
-                </View>
-
-                <View style={styles.pointsCircle}>
-                    <Text style={styles.pointsValue}>{points}</Text>
-                    <Text style={styles.pointsLabel}>POINTS</Text>
                 </View>
 
                 <Spacer height={30} />
@@ -52,7 +44,6 @@ const Index = () => {
 
             <SignedOut>
                 <View style={styles.heroContainer}>
-                    <Text style={styles.heroTitle}>Master Your Studies</Text>
                     <Text style={styles.heroSubtitle}>
                         Track progress, earn points, and achieve your academic goals
                     </Text>
@@ -84,9 +75,7 @@ const Index = () => {
 
 export default function IndexWrapper() {
     return (
-        <PointsProvider>
             <Index />
-        </PointsProvider>
     )
 }
 
@@ -101,11 +90,13 @@ const styles = StyleSheet.create({
     logoContainer: {
         alignItems: 'center',
         marginBottom: 20,
+
     },
     logo: {
         width: 100,
         height: 100,
         marginBottom: 10,
+        borderRadius: 10,
     },
     appTitle: {
         fontSize: 32,

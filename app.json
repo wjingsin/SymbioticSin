@@ -33,6 +33,12 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-build-properties"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "76e8114d-4901-4134-b35a-9dd784150d3c"
+      }
+    }
   }
 }

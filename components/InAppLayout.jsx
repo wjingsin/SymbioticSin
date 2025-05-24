@@ -1,121 +1,74 @@
-import { Slot, Stack, usePathname, Link } from 'expo-router'
-import { Image, StyleSheet, Text, useColorScheme, View, Pressable, TouchableOpacity} from 'react-native'
+import { usePathname, Link } from 'expo-router'
+import { StyleSheet, useColorScheme, Pressable } from 'react-native'
 import { Colors } from '../constants/Colors'
-import { StatusBar} from 'expo-status-bar'
 import ThemedView from "../components/ThemedView";
-import {PointsProvider} from "../contexts/PointsContext";
-import Spacer from "../components/Spacer";
-import homeIcon from '../assets/corgi1.png'
-import homeActiveIcon from '../assets/corgi2.png'
-import todoIcon from '../assets/corgi1.png'
-import todoActiveIcon from '../assets/corgi2.png'
-import contactIcon from '../assets/corgi1.png'
-import contactActiveIcon from '../assets/corgi2.png'
+import {FontAwesome, MaterialCommunityIcons, MaterialIcons} from '@expo/vector-icons';
 
-
-const RootLayout = ({children}) => {
+const RootLayout = ({ children }) => {
     const colorScheme = useColorScheme()
     const theme = Colors[colorScheme] ?? Colors.light
     const pathname = usePathname();
+    const activeColor = '#dc8d51'; // Orange
+    const inactiveColor = theme.tabIconDefault || '#cac8c3';
 
     return (
-        <ThemedView style={{flex: 1}}>
-            {/*<ThemedView style={styles.layoutTop}>*/}
-            {/*    <Text style={styles.header}>{getHeaderTitle()}</Text>*/}
-            {/*</ThemedView>*/}
+        <ThemedView style={{ flex: 1 }}>
             {children}
-            {/*<ThemedView style={styles.layoutBottom}>*/}
-            {/*    <Text style={styles.header}>stuffatthebottoms</Text>*/}
-            {/*</ThemedView>*/}
 
             <ThemedView style={styles.layoutBottom}>
-                <Link href="/todo_testpoint" asChild>
-                    <Pressable>
-                        <Image
-                            source={pathname === "/todo_testpoint" ? todoActiveIcon : todoIcon}
-                            style={styles.footerIcon}
+                <Link href="/todo" asChild>
+                    <Pressable style={styles.footerItem}>
+                        <MaterialCommunityIcons
+                            name="format-list-bulleted"
+                            size={23}
+                            color={pathname === "/todo" ? activeColor : inactiveColor}
                         />
                     </Pressable>
                 </Link>
+
 
                 <Link href="/home" asChild>
-                    <Pressable>
-                        <Image
-                            source={pathname === "/home" ? homeActiveIcon : homeIcon}
-                            style={styles.footerIcon}
+                    <Pressable style={styles.footerItem}>
+                        <MaterialCommunityIcons
+                            name="dog"
+                            size={26}
+                            color={pathname === "/home" ? activeColor : inactiveColor}
                         />
                     </Pressable>
                 </Link>
 
-                <Link href="/contact" asChild>
-                    <TouchableOpacity style={styles.footerButton}>
-                        <Image
-                            source={pathname === "/contact" ? contactActiveIcon : contactIcon}
-                            style={styles.footerIcon}
+                <Link href="/userList" asChild>
+                    <Pressable style={styles.footerItem}>
+                        <MaterialIcons
+                            name="grass"
+                            size={26}
+                            color={pathname === "/userList" ? activeColor : inactiveColor}
                         />
-                    </TouchableOpacity>
+                    </Pressable>
                 </Link>
 
             </ThemedView>
-
         </ThemedView>
-
     )
 }
 
 export default RootLayout
-// <Stack screenOptions={{
-//     headerSyle: {backgroundColor: '#ddd'},
-//     headerTintColor: '#333',
-// }}>
-//     <Stack.Screen name="index" options={{title: 'Home'}} />
-//     <Stack.Screen name="about" options={{title: 'About'}} />
-//     <Stack.Screen name="contact" options={{title: 'Contact'}} />
-// </Stack>
+
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    title: {
-        fontWeight: 'bold',
-        fontSize: 36
-    },
-    img: {
-        width: 200,
-        height: 200,
-        margin: 20
-    },
-    card: {
-        backgroundColor: '#eee',
-        padding: 20,
-        borderRadius: 5,
-        boxShadow: '4px 4px rgba(0, 0, 0, 0.1)'
-    },
-    link: {
-        marginVertical: 20
-    },
-    layoutTop: {
-        marginTop: 60,
-        alignItems: 'center',
-    },
-    header: {
-        fontSize: 28,
-    },
     layoutBottom: {
         flexDirection: 'row',
-        justifyContent: 'space-around', // Or 'space-between'
+        justifyContent: 'space-around',
         alignItems: 'center',
-        paddingVertical: 10,
-        backgroundColor: '#cacaca',
+        paddingVertical: 12,
+        paddingBottom: 25,
+        backgroundColor: '#fafafa',
+        borderTopWidth: 1,
+        borderTopColor: '#eee',
     },
-
-
-    footerIcon: {
-        width: 35,
-        height: 35,
-        resizeMode: 'contain',
-        marginBottom: 10
-    },
+    footerItem: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 5,
+        flex: 1, // Evenly space icons
+    }
 })

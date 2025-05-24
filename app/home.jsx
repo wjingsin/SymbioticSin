@@ -1,115 +1,13 @@
-import { StyleSheet, Text, View, TouchableOpacity } from 'react-native'
-import React, { useState, useEffect } from 'react'
-import { FontAwesome5 } from '@expo/vector-icons'
-import { PointsProvider, usePoints } from "../contexts/PointsContext"
+import {StyleSheet, Text, View, TouchableOpacity, Pressable} from 'react-native'
+import React from 'react'
 import Corgi from "../components/corgi_animated"
 import InAppLayout from "../components/InAppLayout"
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import Spacer from "../components/Spacer";
+import Spacer from "../components/Spacer"
 import Pom from "../components/pom_animated"
-import Pug from "../components/pom_animated"
-import { usePetData, PET_TYPES } from "../contexts/PetContext"
-
-// PetStats component that manages decreasing stats over time
-const PetStats = () => {
-    const [happiness, setHappiness] = useState(100)
-    const [energy, setEnergy] = useState(100)
-    const [health, setHealth] = useState(100)
-    const [loaded, setLoaded] = useState(false)
-    const { points } = usePoints()
-
-    // Load stats from AsyncStorage on mount
-    useEffect(() => {
-        const loadStats = async () => {
-            try {
-                const savedStats = await AsyncStorage.getItem('petStats')
-                if (savedStats) {
-                    const { happiness: savedHappiness, energy: savedEnergy, health: savedHealth } = JSON.parse(savedStats)
-                    setHappiness(savedHappiness)
-                    setEnergy(savedEnergy)
-                    setHealth(savedHealth)
-                }
-                setLoaded(true)
-            } catch (error) {
-                console.error('Failed to load stats from AsyncStorage:', error)
-                setLoaded(true)
-            }
-        }
-
-        loadStats()
-    }, [])
-
-    // Save stats to AsyncStorage whenever they change
-    useEffect(() => {
-        if (!loaded) return
-
-        const saveStats = async () => {
-            try {
-                await AsyncStorage.setItem('petStats', JSON.stringify({ happiness, energy, health }))
-            } catch (error) {
-                console.error('Failed to save stats to AsyncStorage:', error)
-            }
-        }
-
-        saveStats()
-    }, [happiness, energy, health, loaded])
-
-    // Decrease stats over time
-    useEffect(() => {
-        if (!loaded) return
-
-        const interval = setInterval(() => {
-            setHappiness(prev => Math.max(0, prev - 0.5))
-            setEnergy(prev => Math.max(0, prev - 0.3))
-            setHealth(prev => Math.max(0, prev - 0.1))
-        }, 10000) // Decrease every 10 seconds
-
-        return () => clearInterval(interval)
-    }, [loaded])
-
-    // Function to increase stats when fed
-    const increaseStats = () => {
-        setHappiness(prev => Math.min(100, prev + 5))
-        setEnergy(prev => Math.min(100, prev + 3))
-        setHealth(prev => Math.min(100, prev + 2))
-    }
-
-    // Individual stat bar component
-    const StatBar = ({ label, value, maxValue, color }) => {
-        const percentage = (value / maxValue) * 100
-
-        return (
-            <View style={styles.statContainer}>
-                <View style={styles.statLabelContainer}>
-                    <Text style={styles.statLabel}>{label}</Text>
-                    <Text style={styles.statValue}>{Math.round(value)}/{maxValue}</Text>
-                </View>
-                <View style={styles.progressBarBackground}>
-                    <View
-                        style={[
-                            styles.progressBarFill,
-                            { width: `${percentage}%`, backgroundColor: color }
-                        ]}
-                    />
-                </View>
-            </View>
-        )
-    }
-
-    return {
-        happiness,
-        energy,
-        health,
-        increaseStats,
-        StatBars: () => (
-            <View style={styles.statsContainer}>
-                <StatBar label="Happiness" value={happiness} maxValue={100} color="#FF9966" />
-                <StatBar label="Energy" value={energy} maxValue={100} color="#66CCFF" />
-                <StatBar label="Health" value={health} maxValue={100} color="#99CC66" />
-            </View>
-        )
-    }
-}
+import Pug from "../components/pug_animated"
+import { usePetData } from "../contexts/PetContext"
+import {usePathname,Link} from "expo-router";
+import {MaterialCommunityIcons} from "@expo/vector-icons";
 
 const PetDisplay = ({ petType }) => {
     switch (petType) {
@@ -125,18 +23,8 @@ const PetDisplay = ({ petType }) => {
 };
 
 const Home = () => {
-    const { points, minusPoint } = usePoints()
-    const petStatsManager = PetStats()
-    const { StatBars, increaseStats } = petStatsManager
     const { petData, isLoading } = usePetData()
-
-    // Function to feed the pet
-    const feedPet = () => {
-        if (points > 0) {
-            minusPoint()
-            increaseStats()
-        }
-    }
+    const pathname = usePathname();
 
     return (
         <View style={styles.container}>
@@ -153,44 +41,28 @@ const Home = () => {
                     </View>
                 </View>
 
-                {/* Pet Stats */}
-                <StatBars />
-
-                {/* Treat Button and Points */}
-                <View style={styles.feedContainer}>
-                    <View style={styles.pointsIndicator}>
-                        <FontAwesome5 name="bone" size={16} color="#eb7d42" />
-                        <Text style={styles.pointsText}>{points}</Text>
-                    </View>
-
-                    <TouchableOpacity
-                        style={[
-                            styles.treatButton,
-                            points <= 0 && styles.treatButtonDisabled
-                        ]}
-                        onPress={feedPet}
-                        disabled={points <= 0}
-                    >
-                        <FontAwesome5
-                            name="bone"
-                            size={24}
-                            color="white"
-                        />
-                        <Text style={styles.treatText}>Feed Treat</Text>
-                    </TouchableOpacity>
+                {/* Space for pet health, status, energy */}
+                <View style={styles.petStatusContainer}>
+                    <Text style={styles.statusPlaceholder}>Pet health, status, energy here</Text>
                 </View>
             </View>
+
+            {/* Button to navigate to Pet Selection */}
+            <Link href="/petSelection" asChild>
+                <TouchableOpacity style={styles.petSelectionButton}>
+                    <Text style={styles.buttonText}>Customise Pet</Text>
+                </TouchableOpacity>
+            </Link>
+
         </View>
     )
 }
 
 export default function HomeWrapper() {
     return (
-        <PointsProvider>
-            <InAppLayout>
-                <Home />
-            </InAppLayout>
-        </PointsProvider>
+        <InAppLayout>
+            <Home />
+        </InAppLayout>
     )
 }
 
@@ -199,21 +71,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#ffffff',
         paddingTop: 20,
-    },
-    pointsIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff5ee',
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#ffead9',
-    },
-    pointsText: {
-        marginLeft: 6,
-        fontWeight: '600',
-        color: '#eb7d42',
     },
     petContainer: {
         flex: 1,
@@ -258,66 +115,30 @@ const styles = StyleSheet.create({
         borderColor: '#f0f0f0',
         overflow: 'hidden',
     },
-    statsContainer: {
-        marginTop: 20,
-        marginBottom: 20,
-        gap: 12,
+    petStatusContainer: {
+        padding: 15,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 10,
+        alignItems: 'center',
+        height: '40%'
     },
-    statContainer: {
-        marginBottom: 4,
-    },
-    statLabelContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 4,
-    },
-    statLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#555',
-    },
-    statValue: {
-        fontSize: 14,
-        fontWeight: '600',
+    statusPlaceholder: {
+        fontSize: 16,
         color: '#888',
+        fontStyle: 'italic'
     },
-    progressBarBackground: {
-        height: 10,
-        backgroundColor: '#f0f0f0',
-        borderRadius: 5,
-        overflow: 'hidden',
-    },
-    progressBarFill: {
-        height: '100%',
-        borderRadius: 5,
-    },
-    feedContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    treatButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
+    petSelectionButton: {
         backgroundColor: '#eb7d42',
         paddingVertical: 12,
         paddingHorizontal: 20,
-        borderRadius: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
+        borderRadius: 8,
+        alignItems: 'center',
+        marginHorizontal: 16,
+        marginBottom: 20,
     },
-    treatButtonDisabled: {
-        backgroundColor: '#ccc',
-    },
-    treatText: {
-        marginLeft: 8,
-        fontSize: 16,
-        fontWeight: '600',
+    buttonText: {
         color: 'white',
-    },
-    // Journal styles removed
+        fontSize: 16,
+        fontWeight: 'bold',
+    }
 })

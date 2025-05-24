@@ -20,8 +20,8 @@ import { usePetData, PET_TYPES } from '../contexts/PetContext';
 // Pet images
 const PET_IMAGES = {
     corgi: require('../assets/corgi1.png'),
-    pomeranian: require('../assets/corgi2.png'),
-    pug: require('../assets/corgi1.png'),
+    pomeranian: require('../assets/pom1.png'),
+    pug: require('../assets/pugwalk1.png'),
 };
 
 // Pet names for display
@@ -62,15 +62,13 @@ export default function PetSelectionScreen() {
             return;
         }
 
-        // Save pet selection and name to context
         await setPetData({
             selectedPet: selectedIndex,
             petName: petName.trim(),
             isConfirmed: true,
         });
 
-        // Navigate to the next screen
-        router.replace('/'); // Replace with your desired route
+        router.replace('/');
     };
 
     if (isLoading) {

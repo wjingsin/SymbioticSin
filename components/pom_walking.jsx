@@ -1,58 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 
-import corgi_walk_1 from '../assets/corgi_walk/corgi_walk_1.png';
-import corgi_walk_2 from '../assets/corgi_walk/corgi_walk_2.png';
-import corgi_walk_3 from '../assets/corgi_walk/corgi_walk_3.png';
-import corgi_walk_4 from '../assets/corgi_walk/corgi_walk_4.png';
-import corgi_walk_5 from '../assets/corgi_walk/corgi_walk_5.png';
-import corgi_walk_6 from '../assets/corgi_walk/corgi_walk_6.png';
-import corgi_walk_7 from '../assets/corgi_walk/corgi_walk_7.png';
-import corgi_walk_8 from '../assets/corgi_walk/corgi_walk_8.png';
-import corgi_walk_9 from '../assets/corgi_walk/corgi_walk_9.png';
-import corgi_walk_10 from '../assets/corgi_walk/corgi_walk_10.png';
-import corgi_walk_11 from '../assets/corgi_walk/corgi_walk_11.png';
-import corgi_walk_12 from '../assets/corgi_walk/corgi_walk_12.png';
-import corgi_walk_13 from '../assets/corgi_walk/corgi_walk_13.png';
-import corgi_walk_14 from '../assets/corgi_walk/corgi_walk_14.png';
-import corgi_walk_15 from '../assets/corgi_walk/corgi_walk_15.png';
-import corgi_walk_16 from '../assets/corgi_walk/corgi_walk_16.png';
-import corgi_walk_17 from '../assets/corgi_walk/corgi_walk_17.png';
-import corgi_walk_18 from '../assets/corgi_walk/corgi_walk_18.png';
-import corgi_walk_19 from '../assets/corgi_walk/corgi_walk_19.png';
-import corgi_walk_20 from '../assets/corgi_walk/corgi_walk_20.png';
+import pom_walk_1 from '../assets/pom_walk/pom_walk_1.png';
+import pom_walk_2 from '../assets/pom_walk/pom_walk_2.png';
+import pom_walk_3 from '../assets/pom_walk/pom_walk_3.png';
+import pom_walk_4 from '../assets/pom_walk/pom_walk_4.png';
+import pom_walk_5 from '../assets/pom_walk/pom_walk_5.png';
+import pom_walk_6 from '../assets/pom_walk/pom_walk_6.png';
+import pom_walk_7 from '../assets/pom_walk/pom_walk_7.png';
+import pom_walk_8 from '../assets/pom_walk/pom_walk_8.png';
+import pom_walk_9 from '../assets/pom_walk/pom_walk_9.png';
+import pom_walk_10 from '../assets/pom_walk/pom_walk_10.png';
+import pom_walk_11 from '../assets/pom_walk/pom_walk_11.png';
+import pom_walk_12 from '../assets/pom_walk/pom_walk_12.png';
+import pom_walk_13 from '../assets/pom_walk/pom_walk_13.png';
+import pom_walk_14 from '../assets/pom_walk/pom_walk_14.png';
+import pom_walk_15 from '../assets/pom_walk/pom_walk_15.png';
+import pom_walk_16 from '../assets/pom_walk/pom_walk_16.png';
+import pom_walk_17 from '../assets/pom_walk/pom_walk_17.png';
+import pom_walk_18 from '../assets/pom_walk/pom_walk_18.png';
+import pom_walk_19 from '../assets/pom_walk/pom_walk_19.png';
+import pom_walk_20 from '../assets/pom_walk/pom_walk_20.png';
+import pom_walk_21 from '../assets/pom_walk/pom_walk_21.png';
+import pom_walk_22 from '../assets/pom_walk/pom_walk_22.png';
+import pom_walk_23 from '../assets/pom_walk/pom_walk_23.png';
+import pom_walk_24 from '../assets/pom_reverse_walk/pom_walk_1.png'
+import pom_walk_25 from '../assets/pom_reverse_walk/pom_walk_2.png'
+import pom_walk_26 from '../assets/pom_reverse_walk/pom_walk_3.png'
+import pom_walk_27 from '../assets/pom_reverse_walk/pom_walk_4.png'
+import pom_walk_28 from '../assets/pom_reverse_walk/pom_walk_5.png'
+import pom_walk_29 from '../assets/pom_reverse_walk/pom_walk_6.png'
+import pom_walk_30 from '../assets/pom_reverse_walk/pom_walk_7.png'
+import pom_walk_31 from '../assets/pom_reverse_walk/pom_walk_8.png'
+import pom_walk_32 from '../assets/pom_reverse_walk/pom_walk_9.png'
+import pom_walk_33 from '../assets/pom_reverse_walk/pom_walk_10.png'
+import pom_walk_34 from '../assets/pom_reverse_walk/pom_walk_11.png'
+import pom_walk_35 from '../assets/pom_reverse_walk/pom_walk_12.png'
+import pom_walk_36 from '../assets/pom_reverse_walk/pom_walk_13.png'
+import pom_walk_37 from '../assets/pom_reverse_walk/pom_walk_14.png'
+import pom_walk_38 from '../assets/pom_reverse_walk/pom_walk_15.png'
+import pom_walk_39 from '../assets/pom_reverse_walk/pom_walk_16.png'
+import pom_walk_40 from '../assets/pom_reverse_walk/pom_walk_17.png'
+import pom_walk_41 from '../assets/pom_reverse_walk/pom_walk_18.png'
+import pom_walk_42 from '../assets/pom_reverse_walk/pom_walk_19.png'
+import pom_walk_43 from '../assets/pom_reverse_walk/pom_walk_20.png'
+import pom_walk_44 from '../assets/pom_reverse_walk/pom_walk_21.png'
+import pom_walk_45 from '../assets/pom_reverse_walk/pom_walk_22.png'
+import pom_walk_46 from '../assets/pom_reverse_walk/pom_walk_23.png'
 
-import corgi_walk_21 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_1.png';
-import corgi_walk_22 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_2.png';
-import corgi_walk_23 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_3.png';
-import corgi_walk_24 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_4.png';
-import corgi_walk_25 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_5.png';
-import corgi_walk_26 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_6.png';
-import corgi_walk_27 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_7.png';
-import corgi_walk_28 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_8.png';
-import corgi_walk_29 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_9.png';
-import corgi_walk_30 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_10.png';
-import corgi_walk_31 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_11.png';
-import corgi_walk_32 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_12.png';
-import corgi_walk_33 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_13.png';
-import corgi_walk_34 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_14.png';
-import corgi_walk_35 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_15.png';
-import corgi_walk_36 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_16.png';
-import corgi_walk_37 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_17.png';
-import corgi_walk_38 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_18.png';
-import corgi_walk_39 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_19.png';
-import corgi_walk_40 from '../assets/corgi_walk/corgi_reverse_walk/corgi_walk_20.png';
+
+
 
 
 import Spacer from "./Spacer";
 
 const AnimatedImage = () => {
-    const images = [corgi_walk_1, corgi_walk_2, corgi_walk_3, corgi_walk_4, corgi_walk_5, corgi_walk_6, corgi_walk_7,
-    corgi_walk_8, corgi_walk_9, corgi_walk_10, corgi_walk_11, corgi_walk_12, corgi_walk_13, corgi_walk_14, corgi_walk_15,
-    corgi_walk_16, corgi_walk_17, corgi_walk_18, corgi_walk_19, corgi_walk_20, corgi_walk_21, corgi_walk_22, corgi_walk_23,
-    corgi_walk_24, corgi_walk_25, corgi_walk_26, corgi_walk_27, corgi_walk_28, corgi_walk_29, corgi_walk_30, corgi_walk_31,
-    corgi_walk_32, corgi_walk_33, corgi_walk_34, corgi_walk_35, corgi_walk_36, corgi_walk_37, corgi_walk_38, corgi_walk_39,
-    corgi_walk_40,];
+    const images = [pom_walk_1, pom_walk_2, pom_walk_3, pom_walk_4, pom_walk_5, pom_walk_6, pom_walk_7,
+    pom_walk_8, pom_walk_9, pom_walk_10, pom_walk_11, pom_walk_12, pom_walk_13, pom_walk_14, pom_walk_15, pom_walk_16, pom_walk_17, pom_walk_18,
+    pom_walk_19, pom_walk_20, pom_walk_21, pom_walk_22, pom_walk_23, pom_walk_24, pom_walk_25,
+    pom_walk_26, pom_walk_27, pom_walk_28, pom_walk_29, pom_walk_30, pom_walk_31, pom_walk_32,
+    pom_walk_33, pom_walk_34, pom_walk_35, pom_walk_36, pom_walk_37, pom_walk_38, pom_walk_39,
+    pom_walk_40, pom_walk_41, pom_walk_42,  pom_walk_43, pom_walk_44, pom_walk_45, pom_walk_46];
 
     const [index, setIndex] = useState(0);
 

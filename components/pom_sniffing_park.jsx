@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 
-import corgi_sniffing_1 from '../assets/corgi_sniff_grass/corgi_snff_1.png';
-import corgi_sniffing_2 from '../assets/corgi_sniff_grass/corgi_snff_2.png';
-import corgi_sniffing_3 from '../assets/corgi_sniff_grass/corgi_snff_3.png';
-import corgi_sniffing_4 from '../assets/corgi_sniff_grass/corgi_snff_4.png';
-import corgi_sniffing_5 from '../assets/corgi_sniff_grass/corgi_snff_5.png';
-import corgi_sniffing_6 from '../assets/corgi_sniff_grass/corgi_snff_6.png';
-import corgi_sniffing_7 from '../assets/corgi_sniff_grass/corgi_snff_7.png';
-import corgi_sniffing_8 from '../assets/corgi_sniff_grass/corgi_snff_8.png';
+import corgi_sniffing_1 from '../assets/pom_sniff_grass/pom_sniff_1.png';
+import corgi_sniffing_2 from '../assets/pom_sniff_grass/pom_sniff_2.png';
+import corgi_sniffing_3 from '../assets/pom_sniff_grass/pom_sniff_3.png';
+import corgi_sniffing_4 from '../assets/pom_sniff_grass/pom_sniff_4.png';
+import corgi_sniffing_5 from '../assets/pom_sniff_grass/pom_sniff_5.png';
+import corgi_sniffing_6 from '../assets/pom_sniff_grass/pom_sniff_6.png';
+import corgi_sniffing_7 from '../assets/pom_sniff_grass/pom_sniff_7.png';
+import corgi_sniffing_8 from '../assets/pom_sniff_grass/pom_sniff_8.png';
 
 
 import Spacer from "./Spacer";
@@ -45,5 +45,6 @@ const styles = StyleSheet.create({
     img: {
         width: 1395 * x,
         height: 1134 * x,
+        opacity: 0.6
     },
 });

@@ -27,8 +27,8 @@ import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 import InAppLayout from "../components/InAppLayout";
 import { usePetData, PET_TYPES } from '../contexts/PetContext';
 import Spacer from "../components/Spacer";
-import Corgi from "../components/corgi_jumping";
-import Pom from "../components/pom_animated";
+import Corgi from "../components/corgi_walking";
+import Pom from "../components/pom_walking";
 import Pug from "../components/pug_animated";
 import NoPet from "../components/transparent";
 import { SignOutButtonSmall } from "../components/SignOutButtonSmall";
@@ -112,7 +112,7 @@ const PetLayerDisplay = ({ users, currentUser }) => {
                                 styles.petLayer,
                                 {
                                     bottom: 10 - verticalOffset,
-                                    left: 20 + horizontalOffset,
+                                    left: 5 + horizontalOffset,
                                 }
                             ]}
                         >
@@ -381,7 +381,7 @@ export default function UserConnectionScreen() {
                 <View style={styles.tokenContainer}>
                     <View style={styles.totalTokensContainer}>
                         <Animated.View style={{ transform: [{ scale: tokenPulse }] }}>
-                            <MaterialCommunityIcons name="paw" size={24} color="#505a98" />
+                            <MaterialCommunityIcons name="paw" size={24} color="#538ed5" />
                         </Animated.View>
                         <Text style={styles.totalTokens}>{points}</Text>
 
@@ -401,7 +401,7 @@ export default function UserConnectionScreen() {
 
                     <View style={styles.tokenRateContainer}>
                         <Text style={styles.tokenRateText}>
-                            {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#505a98" /> / min
+                            {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#538ed5" /> / min
                         </Text>
                         <Text style={styles.tokenBoostText}>
                             {onlineCount > 0 ? `+${onlineCount*100}% boost from other pets!` : 'No boost'}
@@ -627,9 +627,9 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     totalTokens: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#538ed5',
         marginLeft: 8,
     },
     earnedTokens: {

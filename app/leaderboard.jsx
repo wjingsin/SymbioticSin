@@ -38,9 +38,9 @@ import { debounce } from 'lodash';
 
 // Pet images
 const PET_IMAGES = {
-    corgi: require('../assets/corgi1.png'),
-    pomeranian: require('../assets/pom1.png'),
-    pug: require('../assets/pug1.png'),
+    corgi: require('../assets/corgi_sit.png'),
+    pomeranian: require('../assets/pom_sit.png'),
+    pug: require('../assets/pug_sit.png'),
 };
 
 export default function LeaderboardScreen() {
@@ -160,7 +160,7 @@ export default function LeaderboardScreen() {
                         members: updatedMembers
                     }];
                 });
-            }, 2000); // 2-second debounce
+            }, 1000); // 2-second debounce
 
             unsubscribe = subscribeToGroupMemberChanges(studyGroups[0].id, debouncedGroupUpdate);
 
@@ -380,16 +380,18 @@ export default function LeaderboardScreen() {
                                 <Text style={styles.rankText}>{index + 1}</Text>
                             </View>
                             {item.hasPet === false ? (
-                                <Image source={require('../assets/splash-icon.png')} style={styles.avatar} />
+                                <Image source={require('../assets/transparent_square.png')} style={styles.avatar} />
                             ) : (
-                                <Image source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/splash-icon.png')} style={styles.avatar} />
+                                <Image source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/transparent_square.png')} style={styles.avatar} />
                             )}
                             <View style={styles.userInfo}>
                                 <Text style={styles.petName}>{item.hasPet === false ? "No Pet" : (item.petName || 'No Pet Name')}</Text>
-                                <Text style={styles.userName}>Owner: {item.displayName || 'Unknown'}</Text>
+                                <Text style={styles.userName}>{'Owner: ' + item.displayName || 'Unknown'}</Text>
                             </View>
                             <View style={styles.tokenContainer}>
-                                <Text style={styles.tokenText}>{item.tokens}</Text>
+                                <FontAwesome name="paw" size={18} color="#538ed5" />
+                                <Text style={styles.tokenText}>  {item.tokens}</Text>
+
                             </View>
                         </TouchableOpacity>
                     );
@@ -455,18 +457,30 @@ export default function LeaderboardScreen() {
                                     router.push({ pathname: '/otherUsersProfile', params: { userId: item.userId || item.id } })}
                             >
                                 {item.hasPet === false ? (
-                                    <Image source={require('../assets/splash-icon.png')} style={styles.memberAvatar} />
+                                    <Image source={require('../assets/transparent_square.png')} style={styles.memberAvatar} />
                                 ) : (
                                     <Image
-                                        source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/splash-icon.png')}
+                                        source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/transparent_square.png')}
                                         style={styles.memberAvatar}
                                     />
                                 )}
-                                <View style={styles.memberInfo}>
-                                    <Text style={styles.memberName}>{item.displayName || item.name || 'Unknown Member'}</Text>
-                                    <Text style={styles.petName}>{item.hasPet === false ? "No Pet" : (item.petName || 'No Pet Name')}</Text>
-                                    {item.isOwner && <Text style={styles.ownerTag}>Group Owner</Text>}
+                                <View style={styles.userInfo}>
+                                    {!item.displayName && !item.petName ? (
+                                        <View style={styles.GrouploadingContainer}>
+                                            <ActivityIndicator size="small" color="#FF8C42" />
+                                        </View>
+                                    ) : (
+                                        <>
+                                            <Text style={styles.petName}>
+                                                {item.hasPet === false ? "No Pet" : (item.petName || '')}
+                                            </Text>
+                                            <Text style={styles.userName}>
+                                                {item.displayName == undefined ? '' : 'Owner: ' + item.displayName}
+                                            </Text>
+                                        </>
+                                    )}
                                 </View>
+
                             </TouchableOpacity>
                             )}
                         }
@@ -557,7 +571,7 @@ export default function LeaderboardScreen() {
                         style={[styles.tab, activeTab === 'leaderboard' && styles.activeTab]}
                         onPress={() => setActiveTab('leaderboard')}
                     >
-                        <FontAwesome name="trophy" size={18} color={activeTab === 'leaderboard' ? "#FF8C42" : "#777"} />
+                        <FontAwesome name="paw" size={18} color={activeTab === 'leaderboard' ? "#FF8C42" : "#777"} />
                         <Text style={[styles.tabText, activeTab === 'leaderboard' && styles.activeTabText]}>Leaderboard</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -632,9 +646,9 @@ export default function LeaderboardScreen() {
                                         onPress={() => toggleUserSelection(item.id)}
                                     >
                                         {item.hasPet === false ? (
-                                            <Image source={require('../assets/splash-icon.png')} style={styles.selectAvatar} />
+                                            <Image source={require('../assets/transparent_square.png')} style={styles.selectAvatar} />
                                         ) : (
-                                            <Image source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/splash-icon.png')} style={styles.selectAvatar} />
+                                            <Image source={PET_IMAGES[PET_TYPES[item.petSelection]?.toLowerCase()] || require('../assets/transparent_square.png')} style={styles.selectAvatar} />
                                         )}
                                         <View style={styles.selectUserInfo}>
                                             <Text style={styles.selectUserName}>{item.displayName || 'Unknown'}</Text>
@@ -678,6 +692,12 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center'
+    },
+    GrouploadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: -100,
     },
     loadingText: {
         marginTop: 16,
@@ -805,24 +825,23 @@ const styles = StyleSheet.create({
         borderColor: '#FFD5B5',
     },
     rankCircle: {
-        width: 36,
-        height: 36,
+        width: 26,
+        height: 26,
         borderRadius: 18,
-        backgroundColor: '#FF8C42',
+        borderColor: '#FF8C42',
+        borderWidth: 2,
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 12,
+        marginHorizontal: 5
     },
     rankText: {
-        color: 'white',
+        color: '#FF8C42',
         fontWeight: 'bold',
         fontSize: 16
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        marginRight: 16
+        width: 80,
+        height: 80,
     },
     userInfo: {
         flex: 1
@@ -843,7 +862,7 @@ const styles = StyleSheet.create({
     },
     tokenText: {
         fontWeight: 'bold',
-        color: '#FF8C42',
+        color: '#538ed5',
         fontSize: 18,
         marginRight: 4
     },
@@ -1182,8 +1201,8 @@ const styles = StyleSheet.create({
         borderColor: '#f0f0f0',
     },
     memberAvatar: {
-        width: 40,
-        height: 40,
+        width: 80,
+        height: 80,
         borderRadius: 20,
         marginRight: 12,
     },

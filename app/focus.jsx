@@ -4,8 +4,8 @@ import Slider from '@react-native-community/slider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Corgi from "../components/corgi_sniffing_park";
 import CorgiJump from "../components/corgi_running_park";
-import Pom from "../components/pom_animated";
-import PomJump from "../components/pom_animated";
+import Pom from "../components/pom_sniffing_park";
+import PomJump from "../components/pom_running_park";
 import Pug from "../components/pug_animated";
 import PugJump from "../components/pug_animated";
 import NoPetAnimated from "../components/nopet_animated";
@@ -326,7 +326,7 @@ const FocusTimer = () => {
                     <View style={styles.tokenContainer}>
                         <View style={styles.totalTokensContainer}>
                             <Animated.View style={{ transform: [{ scale: tokenPulse }] }}>
-                                <MaterialCommunityIcons name="paw" size={24} color="#505a98" />
+                                <MaterialCommunityIcons name="paw" size={24} color="#538ed5" />
                             </Animated.View>
                             <Text style={styles.totalTokens}>{points}</Text>
 
@@ -346,7 +346,7 @@ const FocusTimer = () => {
 
                         <View style={styles.tokenRateContainer}>
                             <Text style={styles.tokenRateText}>
-                                {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#505a98" /> / sec
+                                {tokenRate} <MaterialCommunityIcons name="paw" size={14} color="#538ed5" /> / sec
                             </Text>
                         </View>
 
@@ -507,9 +507,9 @@ const styles = StyleSheet.create({
         position: 'relative',
     },
     totalTokens: {
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: 'bold',
-        color: '#333',
+        color: '#538ed5',
         marginLeft: 8,
     },
     earnedTokens: {

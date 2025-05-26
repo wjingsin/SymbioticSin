@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, Image, TouchableOpacity, StatusBar } from 'react-native'
 import { Link } from 'expo-router'
-import Logo from '../assets/pug1.png'
+import Logo from '../assets/3pets.png'
 import React from 'react'
 import { SignedIn, SignedOut, useUser } from '@clerk/clerk-expo'
 import { SignOutButton } from '../components/SignOutButton'
@@ -15,11 +15,12 @@ const Index = () => {
 
     return (
         <View style={styles.container}>
+            <Spacer height={180} />
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
             <Spacer height={70} />
             <View style={styles.logoContainer}>
-                <Image source={Logo} style={[styles.logo, {borderRadius: 20}]} />
-                <Text style={styles.appTitle}>Pawductivity</Text>
+                <Image source={Logo} style={[styles.logo, {borderRadius: 50}]} />
+                <Text style={styles.appTitle}>Paw Pals</Text>
             </View>
 
             <SignedIn>
@@ -32,7 +33,7 @@ const Index = () => {
             {/*        </Text>*/}
             {/*    </View>*/}
 
-            {/*    <Spacer height={30} />*/}
+                <Spacer height={180} />
 
                 <Link href="/home" asChild>
                     <TouchableOpacity style={styles.mainButton}>
@@ -46,13 +47,13 @@ const Index = () => {
             </SignedIn>
 
             <SignedOut>
-                <View style={styles.heroContainer}>
-                    <Text style={styles.heroSubtitle}>
-                        Achieve goals, nurture pets, connect with friends
-                    </Text>
-                </View>
+                {/*<View style={styles.heroContainer}>*/}
+                {/*    <Text style={styles.heroSubtitle}>*/}
+                {/*        Achieve goals, nurture pets, connect with friends*/}
+                {/*    </Text>*/}
+                {/*</View>*/}
 
-                <Spacer height={40} />
+                <Spacer height={150} />
 
                 <Link href="/sign-in" asChild>
                     <TouchableOpacity style={styles.mainButton}>
@@ -97,14 +98,13 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     logo: {
-        width: 100,
-        height: 100,
+        width: 200,
+        height: 200,
         marginBottom: 10,
     },
     appTitle: {
-        fontSize: 32,
-        fontWeight: 'bold',
-        color: '#333',
+        fontSize: 42,
+        color: '#eb7d42',
         marginTop: 10,
         marginBottom: -10,
     },
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     },
     mainButton: {
         backgroundColor: '#eb7d42',
-        width: '100%',
+        width: '50%',
         maxWidth: 300,
         paddingVertical: 15,
         borderRadius: 10,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
     },
     secondaryButton: {
         backgroundColor: 'transparent',
-        width: '100%',
+        width: '50%',
         maxWidth: 300,
         paddingVertical: 15,
         borderRadius: 10,

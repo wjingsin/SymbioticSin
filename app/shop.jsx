@@ -16,7 +16,7 @@ import background2 from '../assets/wreck_it_ralph_880.0.1491200032.png';
 import background3 from '../assets/starry_night.png';
 
 // Import pet images
-import corgiImage from '../assets/corgi1.png';
+import corgiImage from '../assets/3pets.png';
 import pomImage from '../assets/pom2.png';
 import pugImage from '../assets/pug1.png';
 

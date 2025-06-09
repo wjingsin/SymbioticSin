@@ -83,12 +83,14 @@ export default function BuyPetScreen({ route }) { // Add route prop if using sta
             // Deduct tokens
             minusPoint(petPrice);
 
-            // Reset pet stats to 100
+            // Reset pet stats to 100 AND reset the timestamp
+            const currentTime = Date.now();
             await AsyncStorage.setItem('petStats', JSON.stringify({
                 happiness: 100,
                 energy: 100,
                 health: 100
             }));
+            await AsyncStorage.setItem('lastUpdateTime', currentTime.toString());
 
             // Update pet data in context
             const updatedPetData = {
@@ -107,12 +109,12 @@ export default function BuyPetScreen({ route }) { // Add route prop if using sta
                     petSelection: selectedIndex,
                     petName: petName.trim(),
                     hasPet: true,
-                    tokens: points - petPrice, // Update tokens in Firebase accordingly
+                    tokens: points - petPrice,
                 });
             }
 
             Alert.alert('Success', 'You have adopted a new pet!');
-            router.replace('/home'); // Navigate to home or wherever appropriate
+            router.replace('/home');
         } catch (error) {
             console.error('Failed to adopt pet:', error);
             Alert.alert('Error', 'Failed to adopt pet. Please try again.');
@@ -120,6 +122,7 @@ export default function BuyPetScreen({ route }) { // Add route prop if using sta
             setIsSaving(false);
         }
     };
+
 
     return (
         <SafeAreaView style={styles.safeArea}>

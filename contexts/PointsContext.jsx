@@ -33,8 +33,12 @@ export const PointsProvider = ({ children }) => {
         savePoints();
     }, [points]);
 
-    const addPoint = () => {
-        setPoints(prev => 100);
+    const addPoint = (amount = 100) => {
+        setPoints(prev => prev + amount); // Add the amount to current points
+    };
+
+    const purchasePoint = (amount = 20) => {
+        setPoints(prev => prev + amount); // Add the amount to current points
     };
 
     const minusPoint = () => {
@@ -42,7 +46,7 @@ export const PointsProvider = ({ children }) => {
     };
 
     return (
-        <PointsContext.Provider value={{ points, addPoint, minusPoint }}>
+        <PointsContext.Provider value={{ points, addPoint, minusPoint, purchasePoint }}>
             {children}
         </PointsContext.Provider>
     );

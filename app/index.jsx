@@ -20,7 +20,6 @@ const Index = () => {
             <Spacer height={70} />
             <View style={styles.logoContainer}>
                 <Image source={Logo} style={[styles.logo, {borderRadius: 50}]} />
-                <Text style={styles.appTitle}>Paw Pals</Text>
             </View>
 
             <SignedIn>
@@ -71,7 +70,7 @@ const Index = () => {
             </SignedOut>
 
             <View style={styles.footer}>
-                <Text style={styles.footerText}>© 2025 Pawductivity</Text>
+                <Text style={styles.footerText}>© 2025 Symbiotic Sin</Text>
             </View>
         </View>
     )

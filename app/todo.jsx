@@ -387,15 +387,13 @@ function App() {
                 <View style={styles.container}>
                     <Spacer height={20}/>
                     <View style={styles.headerContainer}>
-                        <View style={styles.headerLeftSpace} />
                         <Text style={styles.header}>Tasks</Text>
-                        <View style={[styles.pointsIndicator, {marginTop: -20}]}>
-                            <FontAwesome5 name="bone" size={16} color="#eb7d42" />
-                            <Text style={styles.pointsText}> {points}</Text>
-                        </View>
                     </View>
-
-                    {/* Week Navigation */}
+                    <View style={[styles.pointsIndicator, {marginTop: -55}]}>
+                        <FontAwesome5 name="bone" size={16} color="#eb7d42" />
+                        <Text style={styles.pointsText}> {points}</Text>
+                    </View>
+                    <Spacer height={10}/>
                     {/* Week Navigation */}
                     <View style={styles.weekNavigationContainer}>
                         <Text style={styles.weekDateRange}>
@@ -736,7 +734,7 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
         width: '100%',
     },
     headerLeftSpace: {
@@ -744,19 +742,19 @@ const styles = StyleSheet.create({
     },
     pointsIndicator: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: '',
         backgroundColor: '#fff5ee',
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 20,
         borderWidth: 1,
         borderColor: '#ffead9',
+        alignSelf: 'flex-end'
     },
     pointsContainer: {
         backgroundColor: '#eb7d42',
         padding: 10,
         borderRadius: 20,
-        alignSelf: 'center',
         marginBottom: 30,
     },
     pointsText: {

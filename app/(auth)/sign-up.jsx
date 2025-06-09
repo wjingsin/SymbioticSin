@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native'
 import { useSignUp } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
+import GoogleSignInButton from './GoogleSignInButton' // Adjust path as needed
 
 export default function SignUpScreen() {
     const { isLoaded, signUp, setActive } = useSignUp()
@@ -167,6 +168,7 @@ export default function SignUpScreen() {
                     )}
                 </TouchableOpacity>
 
+
                 <View style={styles.linksContainer}>
                     <Text style={styles.linkText}>Already have an account? </Text>
                     <Link href="/sign-in" asChild>
@@ -175,7 +177,7 @@ export default function SignUpScreen() {
                         </TouchableOpacity>
                     </Link>
                 </View>
-
+                <GoogleSignInButton />
                 <Link href="/" asChild>
                     <TouchableOpacity style={styles.backButton}>
                         <Text style={styles.backButtonText}>Back to Start</Text>

@@ -308,17 +308,11 @@ export default function UserConnectionScreen() {
         <View style={styles.container}>
             <Spacer height={60} />
             <InAppLayout>
-                <View style={styles.headerContainer}>
-                    <View style={styles.headerLeftSpace} />
-                    <Text style={styles.headerText}>   {groupName}</Text>
-                    <SignOutButtonSmall />
-                    <Spacer width={20} />
-                </View>
-
-
-
                 <Spacer height={10} />
-
+                <View style={styles.headerContainer}>
+                    <Text style={styles.headerText}>{groupName}</Text>
+                </View>
+                <Spacer height={20} />
                 {/* Pet Display Area - Replace Corgi with layered pets */}
                 <View style={styles.petDisplayArea}>
                     {user && <PetLayerDisplay users={users} currentUser={user} />}

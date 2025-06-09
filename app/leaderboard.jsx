@@ -404,8 +404,8 @@ export default function LeaderboardScreen() {
 
     const renderStudyGroups = () => (
         <>
+            <Spacer height={10} />
             <View style={styles.groupHeader}>
-                {/*<Text style={styles.headerText}>My Study Group</Text>*/}
                 {studyGroups.length === 0 && (
                     <TouchableOpacity
                         style={styles.createButton}
@@ -552,19 +552,19 @@ export default function LeaderboardScreen() {
             <View style={styles.container}>
                 <Spacer height={50} />
                 {/* Header with invites button */}
-                <View style={styles.header}>
-                    <View style={styles.headerTitleContainer}>
-                        <Text style={styles.appTitle}>Community</Text>
-                    </View>
-                        <TouchableOpacity
-                            style={styles.invitesTopButton}
-                            onPress={() => setShowInvitesModal(true)}
-                        >
-                            <FontAwesome name="envelope" size={16} color="#FF8C42" />
-                            <Text style={styles.invitesTopButtonText}>({invites.length})</Text>
-                        </TouchableOpacity>
+                <Spacer height={20}/>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.appTitle}>Tasks</Text>
                 </View>
-
+                <View style={[styles.pointsIndicator, {marginTop: -35}]}>
+                    <TouchableOpacity
+                        style={styles.invitesTopButton}
+                        onPress={() => setShowInvitesModal(true)}
+                    >
+                        <FontAwesome name="envelope" size={16} color="#FF8C42" />
+                        <Text style={styles.invitesTopButtonText}>({invites.length})</Text>
+                    </TouchableOpacity>
+                </View>
                 {/* Tab Navigation */}
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
@@ -688,6 +688,19 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff'
     },
+    pointsIndicator: {
+        flexDirection: 'row',
+        alignItems: '',
+        paddingVertical: 4,
+        paddingHorizontal: 24,
+        alignSelf: 'flex-end'
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -720,7 +733,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#000000',
         textAlign: 'center',
-        marginLeft: 60
     },
     invitesTopButton: {
         flexDirection: 'row',

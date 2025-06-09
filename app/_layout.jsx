@@ -1,4 +1,4 @@
-import { Slot, Stack, usePathname, Link } from 'expo-router'
+import { Redirect, Slot, Stack, usePathname, Link } from 'expo-router'
 import {StyleSheet, Text, useColorScheme, View, Pressable, TouchableOpacity} from 'react-native'
 import { Colors } from '../constants/Colors'
 import { StatusBar } from 'expo-status-bar'
@@ -8,7 +8,7 @@ import { ClerkProvider } from '@clerk/clerk-expo'
 import { PetProvider } from '../contexts/PetContext';
 import { tokenCache } from '@clerk/clerk-expo/token-cache'
 import React from 'react'
-
+import { useAuth } from '@clerk/clerk-expo'
 
 import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 import {TokensProvider} from "../contexts/TokenContext";

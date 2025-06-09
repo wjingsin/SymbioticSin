@@ -9,6 +9,7 @@ import { useUser } from '@clerk/clerk-expo';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import { usePetData, PET_TYPES } from "../contexts/PetContext";
+import { PointsProvider, usePoints } from "../contexts/PointsContext"
 
 // Import background images
 import background1 from '../assets/living room.png';
@@ -19,6 +20,7 @@ import background3 from '../assets/starry_night.png';
 import corgiImage from '../assets/3pets.png';
 import pomImage from '../assets/pom2.png';
 import pugImage from '../assets/pug1.png';
+import Spacer from "../components/Spacer";
 
 const backgroundOptions = [
     {
@@ -61,6 +63,21 @@ const petOptions = [
         imageUri: corgiImage
     }
 ];
+
+// Add this after your existing options arrays
+const treatOptions = [
+    {
+        id: 'treat1',
+        name: '20 Treats',
+        thumbnailColor: '#009cff',
+        price: 200,
+        description: 'A delicious bone-shaped treat for your pet',
+        iconName: 'bone', // FontAwesome icon name
+        iconSize: 40,
+        iconColor: '#ffffff'
+    },
+];
+
 
 const BackgroundItem = ({ item, onPurchase, purchasedItems }) => {
     const isPurchased = purchasedItems.includes(item.id);
@@ -116,8 +133,38 @@ const PetItem = ({ item, hasPet }) => {
     );
 };
 
+const TreatItem = ({ item, onPurchase }) => {
+    return (
+        <View style={[styles.itemContainer, { backgroundColor: item.thumbnailColor +'40' }]}>
+            <View style={styles.itemPreview}>
+                <FontAwesome5
+                    name={item.iconName}
+                    size={item.iconSize}
+                    color={item.iconColor}
+                />
+            </View>
+            <View style={styles.itemInfo}>
+                <Text style={styles.itemName}>{item.name}</Text>
+                <Text style={styles.itemDescription}>{item.description}</Text>
+                <View style={styles.priceContainer}>
+                    <FontAwesome5 name="paw" size={16} color="#538ed5" />
+                    <Text style={styles.priceText}>{item.price}</Text>
+                </View>
+            </View>
+            <TouchableOpacity
+                style={styles.purchaseButton}
+                onPress={() => onPurchase(item)}>
+
+            <Text style={styles.buttonText}>Buy Treat</Text>
+            </TouchableOpacity>
+        </View>
+    );
+};
+
+
 const Shop = () => {
     const { points, minusPoint } = useTokens();
+    const { purchasePoint } = usePoints()
     const [purchasedItems, setPurchasedItems] = useState([]);
     const [selectedBackground, setSelectedBackground] = useState(null);
     const { user } = useUser();
@@ -212,16 +259,29 @@ const Shop = () => {
             Alert.alert('Insufficient Tokens', `You need ${item.price - points} more tokens to purchase this background.`);
         }
     };
+    const handleTreatPurchase = (treat) => {
+        if (points >= treat.price) {
+            minusPoint(treat.price);
+            purchasePoint();
+            Alert.alert('Success', `${treat.name} purchased! Your pet will love it.`);
+        } else {
+            Alert.alert('Insufficient Points', `You need ${treat.price - points} more points to purchase this treat.`);
+        }
+    };
+
 
     return (
         <View style={styles.container}>
-
+            <Spacer height={6} />
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
                     <FontAwesome5 name="arrow-left" size={24} color="#343a40" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Shop</Text>
-                <View style={styles.tokenContainer}>
+                <Spacer width={38} />
+            </View>
+            <View style={styles.tokenView}>
+                <View style={[styles.tokenContainer, {marginTop: -75}]}>
                     <FontAwesome5 name="paw" size={16} color="#538ed5" />
                     <Text style={styles.tokenText}>{points}</Text>
                 </View>
@@ -237,7 +297,22 @@ const Shop = () => {
                     hasPet={petData.hasPet}
                 />
             ))}
+                {/* Add Treats Section */}
+            <Text style={styles.sectionTitle}>Treats</Text>
+            <Text style={styles.subtitle}>Buy treats for your pet</Text>
 
+            <FlatList
+                data={treatOptions}
+                renderItem={({ item }) => (
+                    <TreatItem
+                        item={item}
+                        onPurchase={handleTreatPurchase}
+                    />
+                )}
+                keyExtractor={item => item.id}
+                contentContainerStyle={styles.listContainer}
+                scrollEnabled={false}
+            />
             {/* Background Section */}
             <Text style={styles.sectionTitle}>Backgrounds</Text>
             <Text style={styles.subtitle}>Customize your pet's home</Text>
@@ -254,6 +329,7 @@ const Shop = () => {
                 contentContainerStyle={styles.listContainer}
                 scrollEnabled={false} // Disable scrolling since we're in a ScrollView
             />
+
             </ScrollView>
         </View>
     );
@@ -261,9 +337,11 @@ const Shop = () => {
 
 export default function ShopWrapper() {
     return (
-        <InAppLayout>
-            <Shop />
-        </InAppLayout>
+        <PointsProvider>
+            <InAppLayout>
+                <Shop />
+            </InAppLayout>
+        </PointsProvider>
     );
 }
 
@@ -287,6 +365,11 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#343a40',
+    },
+    tokenView: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
     },
     tokenContainer: {
         flexDirection: 'row',

@@ -237,9 +237,10 @@ const FocusTimer = () => {
         <InAppLayout>
             <View style={styles.container}>
                 {/* Header */}
-                <Spacer height={20}/>
-                <Text style={styles.header}>Focus</Text>
-
+                <Spacer height={15}/>
+                <View style={styles.headerContainer}>
+                    <Text style={styles.header}>Focus</Text>
+                </View>
                 {/* Pet Background and Timer Overlay */}
                 <View style={styles.petBackgroundContainer}>
                     {/* Pet as background */}
@@ -367,6 +368,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#fff',
         padding: 16,
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
     },
     header: {
         fontSize: 24,

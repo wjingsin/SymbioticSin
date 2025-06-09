@@ -1,13 +1,20 @@
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native'
 import React, { useState, useEffect, useRef } from 'react'
-import { FontAwesome5 } from '@expo/vector-icons'
+import {FontAwesome5, Entypo, FontAwesome, AntDesign} from '@expo/vector-icons'
 import { PointsProvider, usePoints } from "../contexts/PointsContext"
+
+
 import Corgi from "../components/corgi_walking"
 import CorgiJump from "../components/corgi_jumping"
+import CorgiSniff from "../components/corgi_sniffwalk"
 import Pom from "../components/pom_walking"
 import PomJump from "../components/pom_walking"
+import PomSniff from "../components/pom_sniffwalk"
 import Pug from "../components/pug_animated"
 import PugJump from "../components/pug_animated"
+import PugSniff from "../components/pug_animated"
+
+
 import NoPetAnimated from "../components/nopet_animated"
 import InAppLayout from "../components/InAppLayout"
 import AsyncStorage from '@react-native-async-storage/async-storage'
@@ -38,24 +45,38 @@ const PetStats = () => {
     const [health, setHealth] = useState(100)
     const [loaded, setLoaded] = useState(false)
     const [isPetActive, setIsPetActive] = useState(true)
-    const { points } = usePoints()
+    const [lastUpdateTime, setLastUpdateTime] = useState(Date.now())
     const { petData, setPetData } = usePetData()
-    const { user, isLoaded, isSignedIn } = useUser();
+    const { user, isLoaded, isSignedIn } = useUser()
 
+    // Load stats and timestamp
     useEffect(() => {
         const loadStats = async () => {
             try {
                 const savedStats = await AsyncStorage.getItem('petStats')
-                if (savedStats) {
-                    const { happiness: savedHappiness, energy: savedEnergy, health: savedHealth } = JSON.parse(savedStats)
-                    setHappiness(savedHappiness)
-                    setEnergy(savedEnergy)
-                    setHealth(savedHealth)
+                const savedTime = await AsyncStorage.getItem('lastUpdateTime')
 
-                    // Check if any stat is 0 and set isPetActive accordingly
-                    if (savedHappiness === 0 || savedEnergy === 0 || savedHealth === 0) {
+                if (savedStats && savedTime) {
+                    const { happiness: savedHappiness, energy: savedEnergy, health: savedHealth } = JSON.parse(savedStats)
+                    const lastTime = parseInt(savedTime)
+                    const currentTime = Date.now()
+
+                    const timeDifference = (currentTime - lastTime) / 1000
+
+                    const decayRate = 0.001
+                    const totalDecay = timeDifference * decayRate
+
+                    setHappiness(Math.max(0, savedHappiness - totalDecay))
+                    setEnergy(Math.max(0, savedEnergy - totalDecay))
+                    setHealth(Math.max(0, savedHealth - totalDecay))
+                    setLastUpdateTime(currentTime)
+
+                    // Check if pet should be inactive
+                    if ((savedHappiness - totalDecay) <= 0 || (savedEnergy - totalDecay) <= 0 || (savedHealth - totalDecay) <= 0) {
                         setIsPetActive(false)
                     }
+                } else {
+                    setLastUpdateTime(Date.now())
                 }
                 setLoaded(true)
             } catch (error) {
@@ -66,11 +87,15 @@ const PetStats = () => {
         loadStats()
     }, [])
 
+    // Save stats and timestamp
     useEffect(() => {
         if (!loaded) return
         const saveStats = async () => {
             try {
+                const currentTime = Date.now()
                 await AsyncStorage.setItem('petStats', JSON.stringify({ happiness, energy, health }))
+                await AsyncStorage.setItem('lastUpdateTime', currentTime.toString())
+                setLastUpdateTime(currentTime)
             } catch (error) {
                 console.error('Failed to save stats to AsyncStorage:', error)
             }
@@ -78,15 +103,31 @@ const PetStats = () => {
         saveStats()
     }, [happiness, energy, health, loaded])
 
+    // Real-time update using requestAnimationFrame for better performance
     useEffect(() => {
         if (!loaded || !isPetActive) return
-        const interval = setInterval(() => {
-            setHappiness(prev => Math.max(0, prev - 0.1))
-            setEnergy(prev => Math.max(0, prev - 0.1))
-            setHealth(prev => Math.max(0, prev - 0.1))
-        }, 1000)
-        return () => clearInterval(interval)
-    }, [loaded, isPetActive])
+
+        let animationId
+        const updateStats = () => {
+            const currentTime = Date.now()
+            const timeDifference = (currentTime - lastUpdateTime) / 1000
+
+            if (timeDifference >= 1000) { // Update every second
+                const decayRate = 0.001
+                const decay = timeDifference * decayRate
+
+                setHappiness(prev => Math.max(0, prev - decay))
+                setEnergy(prev => Math.max(0, prev - decay))
+                setHealth(prev => Math.max(0, prev - decay))
+                setLastUpdateTime(currentTime)
+            }
+
+            animationId = requestAnimationFrame(updateStats)
+        }
+
+        animationId = requestAnimationFrame(updateStats)
+        return () => cancelAnimationFrame(animationId)
+    }, [loaded, isPetActive, lastUpdateTime])
 
     // Check if any stat reaches 0 and set isPetActive to false
     useEffect(() => {
@@ -164,7 +205,7 @@ const PetStats = () => {
     }
 }
 
-const PetDisplay = ({ petType, backgroundData, happiness, energy, isPetActive }) => {
+const PetDisplay = ({ petType, backgroundData, happiness, energy, health, isPetActive }) => {
     const { petData } = usePetData();
 
     let backgroundImage = null;
@@ -202,21 +243,48 @@ const PetDisplay = ({ petType, backgroundData, happiness, energy, isPetActive })
         );
     }
 
-    const isJumping = happiness > 70 && energy > 70;
+    const isJumping = happiness > 70 && energy > 70 && health > 40;
+    const isSniffing = happiness < 20 && energy < 20 && health < 20;
     let PetComponent;
+
     switch (petType) {
         case 0: // Corgi
-            PetComponent = isJumping ? CorgiJump : Corgi;
+            if (isJumping) {
+                PetComponent = CorgiJump;
+            } else if (isSniffing) {
+                PetComponent = CorgiSniff;
+            } else {
+                PetComponent = Corgi;
+            }
             break;
         case 1: // Pomeranian
-            PetComponent = isJumping ? PomJump : Pom;
+            if (isJumping) {
+                PetComponent = PomJump;
+            } else if (isSniffing) {
+                PetComponent = PomSniff;
+            } else {
+                PetComponent = Pom;
+            }
             break;
         case 2: // Pug
-            PetComponent = isJumping ? PugJump : Pug;
+            if (isJumping) {
+                PetComponent = PugJump;
+            } else if (isSniffing) {
+                PetComponent = PugSniff;
+            } else {
+                PetComponent = Pug;
+            }
             break;
         default:
-            PetComponent = isJumping ? CorgiJump : Corgi;
+            if (isJumping) {
+                PetComponent = CorgiJump;
+            } else if (isSniffing) {
+                PetComponent = CorgiSniff;
+            } else {
+                PetComponent = Corgi;
+            }
     }
+
 
     return (
         <View style={styles.petBackground}>
@@ -241,7 +309,7 @@ const Home = () => {
     const { points, minusPoint } = usePoints()
     const { points: tokens } = useTokens()
     const petStatsManager = PetStats()
-    const { StatBars, increaseStats, happiness, energy, isPetActive } = petStatsManager
+    const { StatBars, increaseStats, happiness, energy, health, isPetActive } = petStatsManager
     const { petData, isLoading } = usePetData()
     const [backgroundData, setBackgroundData] = useState(null)
     const { user, isLoaded, isSignedIn } = useUser();
@@ -294,7 +362,17 @@ const Home = () => {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Home</Text>
+            <View style={styles.header}>
+                <View style={styles.headerTitleContainer}>
+                    <Text style={styles.appTitle}>Home</Text>
+                </View>
+                <Link href="/editProfile_home" asChild>
+                    <TouchableOpacity style={styles.invitesTopButton}>
+                        <AntDesign name="setting" size={14} color="#FF8C42" />
+                        <Text style={styles.invitesTopButtonText}>Settings</Text>
+                    </TouchableOpacity>
+                </Link>
+            </View>
             <Spacer height={20}/>
             <View style={styles.petContainer}>
                 <View style={styles.petNameContainer}>
@@ -312,6 +390,7 @@ const Home = () => {
                         backgroundData={backgroundData}
                         happiness={happiness}
                         energy={energy}
+                        health={health}
                         isPetActive={isPetActive}
                     />
                 </View>
@@ -348,9 +427,16 @@ const Home = () => {
                 </View>
             </View>
             <View style={{justifyContent: 'center', alignItems: 'center'}}>
+                <Link href="/shop" asChild>
+                    <TouchableOpacity style={styles.mainButton}>
+                        <Entypo name="shop" size={22} color="white" />
+                        <Text style={styles.mainButtonText}> Shop</Text>
+                    </TouchableOpacity>
+                </Link>
                 <Link href="/petSelection" asChild>
                     <TouchableOpacity style={styles.mainButton}>
-                        <Text style={styles.mainButtonText}>Edit Profile</Text>
+                        <Entypo name="shop" size={22} color="white" />
+                        <Text style={styles.mainButtonText}> SE</Text>
                     </TouchableOpacity>
                 </Link>
             </View>
@@ -375,7 +461,6 @@ export default function HomeWrapper() {
                 try {
                     await updateUserStatus(user.id, 'offline');
                     setStatusSet(true);
-                    console.log('User status set to offline on home page');
                 } catch (error) {
                     console.error('Failed to set offline status:', error);
                 }
@@ -399,11 +484,13 @@ export default function HomeWrapper() {
 
 const styles = StyleSheet.create({
     mainButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: '#eb7d42',
         width: '93%',
         paddingVertical: 15,
         borderRadius: 13,
-        alignItems: 'center',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
@@ -412,16 +499,17 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     mainButtonText: {
-        color: 'white',
-        fontSize: 18,
+        flexDirection: 'row',
+        alignItems: 'center',
+        color: '#ffffff',
+        fontSize: 20,
         fontWeight: '600',
     },
     header: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginTop: 50,
-        textAlign: 'center',
-        color: '#343a40',
+        flexDirection: 'row',
+        paddingTop: 45,
+        paddingHorizontal: 20,
+        marginLeft: 110,
     },
     container: {
         flex: 1,
@@ -563,5 +651,37 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: 'white',
+    },
+    headerTitleContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 15,
+        marginTop: 5,
+    },
+    appTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#000000',
+        textAlign: 'center',
+    },
+    invitesTopButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#FF8C42',
+    },
+    invitesTopButtonText: {
+        color: '#FF8C42',
+        fontWeight: '600',
+        fontSize: 12,
+        marginLeft: 5,
+    },
+    contentContainer: {
+        flex: 1,
+        paddingTop: 15,
     },
 })

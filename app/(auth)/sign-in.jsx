@@ -2,6 +2,7 @@ import { useSignIn } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, Image } from 'react-native'
 import React, { useState } from 'react'
+import GoogleSignInButton from './GoogleSignInButton' // Adjust path as needed
 
 export default function SignInScreen() {
     const { signIn, setActive, isLoaded } = useSignIn()
@@ -90,6 +91,8 @@ export default function SignInScreen() {
                     </Text>
                 </TouchableOpacity>
 
+
+
                 <View style={styles.linksContainer}>
                     <Text style={styles.linkText}>Don't have an account? </Text>
                     <Link href="/sign-up" asChild>
@@ -99,6 +102,12 @@ export default function SignInScreen() {
                     </Link>
                 </View>
 
+                <GoogleSignInButton />
+                <Link href="/" asChild>
+                    <TouchableOpacity style={styles.backButton}>
+                        <Text style={styles.backButtonText}>Back to Start</Text>
+                    </TouchableOpacity>
+                </Link>
 
             </View>
         </KeyboardAvoidingView>

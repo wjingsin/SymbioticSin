@@ -2,7 +2,6 @@ import * as React from 'react'
 import { Text, TextInput, TouchableOpacity, View, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native'
 import { useSignUp } from '@clerk/clerk-expo'
 import { Link, useRouter } from 'expo-router'
-import GoogleSignInButton from './GoogleSignInButton' // Adjust path as needed
 
 export default function SignUpScreen() {
     const { isLoaded, signUp, setActive } = useSignUp()
@@ -15,38 +14,30 @@ export default function SignUpScreen() {
     const [loading, setLoading] = React.useState(false)
     const [error, setError] = React.useState('')
 
-    // Handle submission of sign-up form
     const onSignUpPress = async () => {
         if (!isLoaded || loading) return
 
         setLoading(true)
         setError('')
 
-        // Start sign-up process using email and password provided
         try {
             await signUp.create({
                 emailAddress,
                 password,
             })
 
-            // Send user an email with verification code
             await signUp.prepareEmailAddressVerification({ strategy: 'email_code' })
 
-            // Set 'pendingVerification' to true to display second form
-            // and capture OTP code
             setPendingVerification(true)
         } catch (err) {
-            // console.error(JSON.stringify(err, null, 2))
             const errorDetails = JSON.stringify(err, null, 2);
 
-            // Set the detailed error message to be displayed in the UI
             setError(`Registration failed: ${err.message || 'Unknown error'}\n\nDetails: ${errorDetails}`);
         } finally {
             setLoading(false)
         }
     }
 
-    // Handle submission of verification form
     const onVerifyPress = async () => {
         if (!isLoaded || loading) return
 
@@ -54,19 +45,14 @@ export default function SignUpScreen() {
         setError('')
 
         try {
-            // Use the code the user provided to attempt verification
             const signUpAttempt = await signUp.attemptEmailAddressVerification({
                 code,
             })
 
-            // If verification was completed, set the session to active
-            // and redirect the user
             if (signUpAttempt.status === 'complete') {
                 await setActive({ session: signUpAttempt.createdSessionId })
                 router.replace('petSelection')
             } else {
-                // If the status is not complete, check why. User may need to
-                // complete further steps.
                 console.error(JSON.stringify(signUpAttempt, null, 2))
                 setError('Verification incomplete. Please try again.')
             }
@@ -177,7 +163,6 @@ export default function SignUpScreen() {
                         </TouchableOpacity>
                     </Link>
                 </View>
-                <GoogleSignInButton />
                 <Link href="/" asChild>
                     <TouchableOpacity style={styles.backButton}>
                         <Text style={styles.backButtonText}>Back to Start</Text>

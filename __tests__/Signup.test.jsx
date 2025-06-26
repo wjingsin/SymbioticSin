@@ -1,10 +1,8 @@
-// __tests__/SignUp.test.jsx
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import SignUpScreen from '../app/(auth)/sign-up';
 
-// Mock expo-router
 jest.mock('expo-router', () => ({
     useRouter: jest.fn(() => ({
         replace: jest.fn(),
@@ -15,7 +13,7 @@ jest.mock('expo-router', () => ({
     },
 }));
 
-// Mock Clerk
+// mock clerkk
 jest.mock('@clerk/clerk-expo', () => ({
     useSignUp: jest.fn(() => ({
         signUp: {
@@ -83,14 +81,10 @@ describe('SignUpScreen', () => {
         });
 
         const { getByText, getByPlaceholderText } = render(<SignUpScreen />);
-
-        // Fill in form
         const emailInput = getByPlaceholderText('Enter your email');
         const passwordInput = getByPlaceholderText('Create a password');
         fireEvent.changeText(emailInput, 'test@example.com');
         fireEvent.changeText(passwordInput, 'password123');
-
-        // Submit form
         await act(async () => {
             fireEvent.press(getByText('Sign Up'));
         });
@@ -116,14 +110,10 @@ describe('SignUpScreen', () => {
         });
 
         const { getByText, getByPlaceholderText } = render(<SignUpScreen />);
-
-        // Fill in form
         const emailInput = getByPlaceholderText('Enter your email');
         const passwordInput = getByPlaceholderText('Create a password');
         fireEvent.changeText(emailInput, 'test@example.com');
         fireEvent.changeText(passwordInput, 'password123');
-
-        // Submit form
         await act(async () => {
             fireEvent.press(getByText('Sign Up'));
         });

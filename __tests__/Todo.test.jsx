@@ -1,4 +1,3 @@
-// __tests__/Todo.test.jsx
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
@@ -6,13 +5,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Todo from '../app/todo';
 import { format, startOfWeek } from 'date-fns';
 
-// Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => ({
     getItem: jest.fn(() => Promise.resolve(null)),
     setItem: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock notifications
 jest.mock('expo-notifications', () => ({
     setNotificationHandler: jest.fn(),
     getPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
@@ -21,8 +18,6 @@ jest.mock('expo-notifications', () => ({
     cancelScheduledNotificationAsync: jest.fn(() => Promise.resolve()),
     setNotificationChannelAsync: jest.fn(() => Promise.resolve()),
 }));
-
-// Mock contexts
 jest.mock('../contexts/PointsContext', () => ({
     PointsProvider: ({ children }) => children,
     usePoints: jest.fn(() => ({
@@ -31,20 +26,13 @@ jest.mock('../contexts/PointsContext', () => ({
     })),
 }));
 
-// Mock components
 jest.mock('../components/InAppLayout', () => ({ children }) => children);
 jest.mock('../components/Spacer', () => () => null);
-
-// Mock date picker
 jest.mock('@react-native-community/datetimepicker', () => 'DateTimePicker');
-
-// Mock gesture handler
 jest.mock('react-native-gesture-handler', () => ({
     GestureHandlerRootView: ({ children }) => children,
     Swipeable: ({ children }) => children,
 }));
-
-// Mock Alert
 jest.spyOn(Alert, 'alert');
 
 describe('Todo Component', () => {
@@ -78,7 +66,6 @@ describe('Todo Component', () => {
     });
 
     it('toggles task completion', async () => {
-        // Mock existing tasks with the correct date format
         const currentDate = new Date();
         const weekStart = format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'yyyy-MM-dd');
 
@@ -96,7 +83,6 @@ describe('Todo Component', () => {
             }
         };
 
-        // Mock AsyncStorage to return the tasks
         AsyncStorage.getItem.mockImplementation((key) => {
             if (key === 'allTasks') {
                 return Promise.resolve(JSON.stringify(mockTasks));
@@ -106,12 +92,10 @@ describe('Todo Component', () => {
 
         const { getByText } = render(<Todo />);
 
-        // Wait for the component to load the tasks from AsyncStorage
         await waitFor(() => {
             expect(getByText('Test Task')).toBeTruthy();
         });
 
-        // Now test the task completion toggle
         await act(async () => {
             fireEvent.press(getByText('Test Task'));
         });

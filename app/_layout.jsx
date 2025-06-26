@@ -1,7 +1,6 @@
 import { Redirect, Slot, Stack, usePathname, Link } from 'expo-router'
 import {StyleSheet, Text, useColorScheme, View, Pressable, TouchableOpacity} from 'react-native'
 import { Colors } from '../constants/Colors'
-import { StatusBar } from 'expo-status-bar'
 import ThemedView from "../components/ThemedView";
 import Spacer from "../components/Spacer";
 import { ClerkProvider } from '@clerk/clerk-expo'
@@ -46,14 +45,6 @@ const RootLayout = () => {
     }
 
 export default RootLayout
-// <Stack screenOptions={{
-//     headerSyle: {backgroundColor: '#ddd'},
-//     headerTintColor: '#333',
-// }}>
-//     <Stack.Screen name="index" options={{title: 'Home'}} />
-//     <Stack.Screen name="about" options={{title: 'About'}} />
-//     <Stack.Screen name="contact" options={{title: 'Contact'}} />
-// </Stack>
 const styles = StyleSheet.create({
     container: {
         flex: 1,

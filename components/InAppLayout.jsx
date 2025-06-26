@@ -8,8 +8,6 @@ const RootLayout = ({ children }) => {
     const colorScheme = useColorScheme()
     const theme = Colors[colorScheme] ?? Colors.light
     const pathname = usePathname();
-
-    // Define the active and inactive colors for the icons
     const activeColor = '#dc8d51'; // Orange
     const inactiveColor = theme.tabIconDefault || '#cac8c3';
 
@@ -24,17 +22,6 @@ const RootLayout = ({ children }) => {
                             name="format-list-bulleted"
                             size={23}
                             color={pathname === "/todo" ? activeColor : inactiveColor}
-                        />
-                    </Pressable>
-                </Link>
-
-                {/* New Focus Icon */}
-                <Link href="/focus" asChild>
-                    <Pressable style={styles.footerItem}>
-                        <MaterialCommunityIcons
-                            name="timer-sand" // Or "hourglass-half"
-                            size={22}
-                            color={pathname === "/focus" ? activeColor : inactiveColor}
                         />
                     </Pressable>
                 </Link>
@@ -55,16 +42,6 @@ const RootLayout = ({ children }) => {
                             name="groups"
                             size={26}
                             color={pathname === "/userList" ? activeColor : inactiveColor}
-                        />
-                    </Pressable>
-                </Link>
-
-                <Link href="/leaderboard" asChild>
-                    <Pressable style={styles.footerItem}>
-                        <MaterialIcons
-                            name="group-work"
-                            size={26}
-                            color={pathname === "/leaderboard" ? activeColor : inactiveColor}
                         />
                     </Pressable>
                 </Link>
@@ -90,6 +67,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 5,
-        flex: 1, // Evenly space icons
+        flex: 1,
     }
 })

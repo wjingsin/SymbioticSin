@@ -10,9 +10,9 @@ import CorgiSniff from "../components/corgi_sniffwalk"
 import Pom from "../components/pom_walking"
 import PomJump from "../components/pom_walking"
 import PomSniff from "../components/pom_sniffwalk"
-import Pug from "../components/pug_animated"
-import PugJump from "../components/pug_animated"
-import PugSniff from "../components/pug_animated"
+import Pug from "../components/pug_walking"
+import PugJump from "../components/pug_jumping"
+import PugSniff from "../components/pug_sniffwalk"
 
 
 import NoPetAnimated from "../components/nopet_animated"
@@ -28,7 +28,6 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
 import useClerkFirebaseSync from '../hooks/useClerkFirebaseSync';
 
-// Import background images
 import background1 from '../assets/living room.png';
 import background2 from '../assets/wreck_it_ralph_880.0.1491200032.png';
 import background3 from '../assets/starry_night.png';
@@ -38,6 +37,9 @@ const backgroundImages = {
     '2': background2,
     '3': background3,
 };
+
+
+
 
 const PetStats = () => {
     const [happiness, setHappiness] = useState(100)
@@ -49,7 +51,6 @@ const PetStats = () => {
     const { petData, setPetData } = usePetData()
     const { user, isLoaded, isSignedIn } = useUser()
 
-    // Load stats and timestamp
     useEffect(() => {
         const loadStats = async () => {
             try {
@@ -63,7 +64,7 @@ const PetStats = () => {
 
                     const timeDifference = (currentTime - lastTime) / 1000
 
-                    const decayRate = 0.001
+                    const decayRate = 1
                     const totalDecay = timeDifference * decayRate
 
                     setHappiness(Math.max(0, savedHappiness - totalDecay))
@@ -71,9 +72,8 @@ const PetStats = () => {
                     setHealth(Math.max(0, savedHealth - totalDecay))
                     setLastUpdateTime(currentTime)
 
-                    // Check if pet should be inactive
                     if ((savedHappiness - totalDecay) <= 0 || (savedEnergy - totalDecay) <= 0 || (savedHealth - totalDecay) <= 0) {
-                        setIsPetActive(false)
+
                     }
                 } else {
                     setLastUpdateTime(Date.now())
@@ -87,7 +87,6 @@ const PetStats = () => {
         loadStats()
     }, [])
 
-    // Save stats and timestamp
     useEffect(() => {
         if (!loaded) return
         const saveStats = async () => {
@@ -103,7 +102,6 @@ const PetStats = () => {
         saveStats()
     }, [happiness, energy, health, loaded])
 
-    // Real-time update using requestAnimationFrame for better performance
     useEffect(() => {
         if (!loaded || !isPetActive) return
 
@@ -112,8 +110,8 @@ const PetStats = () => {
             const currentTime = Date.now()
             const timeDifference = (currentTime - lastUpdateTime) / 1000
 
-            if (timeDifference >= 1000) { // Update every second
-                const decayRate = 0.001
+            if (timeDifference >= 1000) {
+                const decayRate = 1
                 const decay = timeDifference * decayRate
 
                 setHappiness(prev => Math.max(0, prev - decay))
@@ -129,24 +127,21 @@ const PetStats = () => {
         return () => cancelAnimationFrame(animationId)
     }, [loaded, isPetActive, lastUpdateTime])
 
-    // Check if any stat reaches 0 and set isPetActive to false
     useEffect(() => {
         if (loaded) {
-            const shouldUpdatePet = (happiness === 0 || energy === 0 || health === 0) && petData.hasPet;
+            const shouldUpdatePet = (happiness === 0 || energy === 0 || health === 0);
 
             if (shouldUpdatePet) {
-                // Update local state
                 setPetData({
                     ...petData,
-                    hasPet: false
+                    hasPet: true
                 });
 
-                // Update in Firebase
                 if (isLoaded && isSignedIn && user) {
                     try {
                         const userRef = doc(db, 'users', user.id);
                         updateDoc(userRef, {
-                            hasPet: false
+                            hasPet: true
                         });
                     } catch (error) {
                         console.error('Failed to update hasPet status in Firestore:', error);
@@ -157,6 +152,9 @@ const PetStats = () => {
     }, [happiness, energy, health, loaded, petData, setPetData, isLoaded, isSignedIn, user]);
 
 
+
+
+
     const increaseStats = () => {
         if (!isPetActive) return;
 
@@ -164,6 +162,9 @@ const PetStats = () => {
         setEnergy(prev => Math.min(100, prev + 3))
         setHealth(prev => Math.min(100, prev + 2))
     }
+
+
+
 
     const StatBar = ({ label, value, maxValue, color }) => {
         const percentage = (value / maxValue) * 100
@@ -205,6 +206,9 @@ const PetStats = () => {
     }
 }
 
+
+
+
 const PetDisplay = ({ petType, backgroundData, happiness, energy, health, isPetActive }) => {
     const { petData } = usePetData();
 
@@ -222,7 +226,6 @@ const PetDisplay = ({ petType, backgroundData, happiness, energy, health, isPetA
         }
     }
 
-    // If hasPet is false or pet is inactive, show NoPetAnimated
     if (!petData.hasPet || !isPetActive) {
         return (
             <View style={styles.petBackground}>
@@ -305,6 +308,8 @@ const PetDisplay = ({ petType, backgroundData, happiness, energy, health, isPetA
     );
 };
 
+
+
 const Home = () => {
     const { points, minusPoint } = usePoints()
     const { points: tokens } = useTokens()
@@ -329,7 +334,6 @@ const Home = () => {
         loadBackground()
     }, [])
 
-    // Add a ref to prevent unnecessary updates
     const lastPetDataRef = useRef();
 
     useEffect(() => {
@@ -377,12 +381,10 @@ const Home = () => {
             <View style={styles.petContainer}>
                 <View style={styles.petNameContainer}>
                     <Text style={styles.petName}>{petData.petName}</Text>
-                    <Link href="/shop" asChild>
                         <TouchableOpacity style={styles.tokenIndicator}>
                             <FontAwesome5 name="paw" size={16} color="#538ed5" />
                             <Text style={styles.tokenText}>{tokens}</Text>
                         </TouchableOpacity>
-                    </Link>
                 </View>
                 <View style={styles.petDisplayArea}>
                     <PetDisplay
@@ -426,35 +428,16 @@ const Home = () => {
                     </TouchableOpacity>
                 </View>
             </View>
-            <View style={{justifyContent: 'center', alignItems: 'center'}}>
-                <Link href="/shop" asChild>
-                    <TouchableOpacity style={styles.mainButton}>
-                        <Entypo name="shop" size={22} color="white" />
-                        <Text style={styles.mainButtonText}> Shop</Text>
-                    </TouchableOpacity>
-                </Link>
-                <Link href="/petSelection" asChild>
-                    <TouchableOpacity style={styles.mainButton}>
-                        <Entypo name="shop" size={22} color="white" />
-                        <Text style={styles.mainButtonText}> SE</Text>
-                    </TouchableOpacity>
-                </Link>
-            </View>
         </View>
     )
 }
 
 export default function HomeWrapper() {
     const { user } = useUser();
-    const {
-        updateHasPetStatus,
-        isAuthenticated,
-        authError
-    } = useClerkFirebaseSync();
+    const {updateHasPetStatus, isAuthenticated, authError} = useClerkFirebaseSync();
 
     const [statusSet, setStatusSet] = useState(false);
 
-    // Set status to offline ONCE when entering home page
     useEffect(() => {
         const setOfflineStatus = async () => {
             if (user?.id && isAuthenticated && !statusSet) {

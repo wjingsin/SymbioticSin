@@ -1,5 +1,3 @@
-// app/pet-selection.js
-
 import React, { useState, useEffect } from 'react';
 import {
     Text,
@@ -19,20 +17,17 @@ import {router, useRouter} from 'expo-router';
 import { usePetData, PET_TYPES } from '../contexts/PetContext';
 import { useUser } from '@clerk/clerk-expo';
 import {FontAwesome5, Ionicons} from '@expo/vector-icons';
-import { updateUserStatus } from "../firebaseService";
-import { doc, updateDoc } from 'firebase/firestore'; // <-- Add this
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebaseConfig';
-import Spacer from "../components/Spacer"; // <-- Add this
+import Spacer from "../components/Spacer";
 import { SignOutButton } from '../components/SignOutButton';
 
-// Pet images
 const PET_IMAGES = {
     corgi: require('../assets/corgi1.png'),
     pomeranian: require('../assets/pom1.png'),
     pug: require('../assets/pug1.png'),
 };
 
-// Pet names for display
 const PET_NAMES = {
     corgi: 'Corgi',
     pomeranian: 'Pomeranian',
@@ -44,20 +39,16 @@ export default function PetSelectionScreen() {
     const { petData, setPetData, isLoading } = usePetData();
     const { isLoaded, isSignedIn, user } = useUser();
 
-    // Profile state
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [profileError, setProfileError] = useState('');
 
-    // Pet selection state
     const [selectedIndex, setSelectedIndex] = useState(petData.selectedPet);
     const [petName, setPetName] = useState(petData.petName || '');
     const [petError, setPetError] = useState('');
 
-    // Loading state
     const [isSaving, setIsSaving] = useState(false);
 
-    // Update local state if petData changes
     useEffect(() => {
         if (!isLoading) {
             setSelectedIndex(petData.selectedPet);
@@ -65,7 +56,6 @@ export default function PetSelectionScreen() {
         }
     }, [isLoading, petData]);
 
-    // Get user data when loaded
     useEffect(() => {
         if (isLoaded && isSignedIn && user) {
             setFirstName(user.firstName || '');
@@ -81,7 +71,6 @@ export default function PetSelectionScreen() {
     const handleContinue = async () => {
         let hasError = false;
 
-        // Validate profile information
         if (!firstName.trim()) {
             setProfileError('First name cannot be blank');
             hasError = true;
@@ -92,7 +81,6 @@ export default function PetSelectionScreen() {
             setProfileError('');
         }
 
-        // Validate pet selection
         if (selectedIndex === null) {
             setPetError('Please select a pet');
             hasError = true;
@@ -107,7 +95,6 @@ export default function PetSelectionScreen() {
 
         setIsSaving(true);
         try {
-            // Update user profile if signed in
             if (isSignedIn && user) {
                 await user.update({
                     firstName: firstName.trim(),
@@ -115,31 +102,27 @@ export default function PetSelectionScreen() {
                 });
             }
 
-            // Save pet selection and set hasPet to true in PetContext
             await setPetData({
                 selectedPet: selectedIndex,
                 petName: petName.trim(),
                 isConfirmed: true,
-                hasPet: true, // <-- Set hasPet true here
+                hasPet: true,
             });
 
-            // Update Firestore with pet info and hasPet true
             if (isSignedIn && user) {
                 try {
                     const userRef = doc(db, 'users', user.id);
                     await updateDoc(userRef, {
                         petSelection: selectedIndex,
                         petName: petName.trim(),
-                        hasPet: true, // <-- Set hasPet true in Firebase
+                        hasPet: true,
                     });
                 } catch (error) {
                     console.error('Failed to update pet info in Firestore:', error);
-                    // Optionally show an alert or toast
                 }
             }
 
-            // Navigate to the next screen
-            router.replace('/afterAugment'); // Replace with your desired route
+            router.replace('/afterAugment');
 
         } catch (error) {
             console.error('Error saving data:', error);
@@ -149,8 +132,6 @@ export default function PetSelectionScreen() {
         }
     };
 
-
-    // Loading state for both pet data and user auth
     if (isLoading || !isLoaded) {
         return (
             <View style={styles.loadingContainer}>
@@ -222,7 +203,6 @@ export default function PetSelectionScreen() {
                             </View>
                         </View>
 
-                        {/* Pet Selection Section */}
                         <View style={styles.sectionContainer}>
 
 
@@ -245,7 +225,6 @@ export default function PetSelectionScreen() {
                             </View>
                         </View>
 
-                        {/* Submit Button */}
                         <TouchableOpacity
                             style={[styles.button, isSaving && styles.disabledButton]}
                             onPress={handleContinue}
